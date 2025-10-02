@@ -19,7 +19,7 @@ Options:
   -h, --help               Show this help.
 
 Example:
-  curl -fsSL https://raw.githubusercontent.com/justinloveless/github-vscode-interceptor/main/scripts/install-native-host-standalone.sh \\
+  curl -fsSL https://raw.githubusercontent.com/justinloveless/github-to-ide/refs/heads/main/scripts/install-native-host-standalone.sh \\
     | bash -s -- --extension-id abcdefghijklmnoabcdefghi
 USAGE
 }

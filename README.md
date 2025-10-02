@@ -18,7 +18,7 @@ GitHub to IDE intercepts GitHub links and sends them straight to the IDE of your
    - After the extension is loaded, note its ID from `chrome://extensions`.
    - Run the one-liner (replace `<extension-id>` with your ID):
      ```bash
-     curl -fsSL https://raw.githubusercontent.com/justinloveless/github-vscode-interceptor/main/scripts/install-native-host-standalone.sh | \
+     curl -fsSL https://raw.githubusercontent.com/justinloveless/github-to-ide/refs/heads/main/scripts/install-native-host-standalone.sh   | \
        bash -s -- --extension-id <extension-id>
      ```
    - The script downloads the native helper to `~/.github-to-ide/native-host` and writes the manifest for Chrome/Arc/Brave/Chromium/Vivaldi.

@@ -515,7 +515,7 @@ function isPlainObject(value) {
 function updateNativeHostCommand() {
   if (!nativeHostCommandEl) return;
   const extensionId = chrome.runtime?.id || "<extension-id>";
-  const command = `curl -fsSL https://raw.githubusercontent.com/justinloveless/github-vscode-interceptor/main/scripts/install-native-host-standalone.sh | bash -s -- --extension-id ${extensionId}`;
+  const command = `curl -fsSL https://raw.githubusercontent.com/justinloveless/github-to-ide/refs/heads/main/scripts/install-native-host-standalone.sh | bash -s -- --extension-id ${extensionId}`;
   nativeHostCommandEl.textContent = command;
 }
 
