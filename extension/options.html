@@ -1,0 +1,27 @@
+
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>GitHub → VS Code Options</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 16px; }
+      label { display: block; margin-bottom: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>GitHub → VS Code</h1>
+    <p>Default clone root (use <code>~/Users/justin.loveless/Documents/Code</code> style paths):</p>
+    <label>
+      <input id="root" type="text" placeholder="~/Users/justin.loveless/Documents/Code" />
+    </label>
+    <button id="save">Save</button>
+
+    <script>
+      const rootEl = document.getElementById('root');
+      const saveBtn = document.getElementById('save');
+      chrome.storage.sync.get(['root'], (v) => { rootEl.value = v.root || '~/Users/justin.loveless/Documents/Code'; });
+      saveBtn.onclick = () => chrome.storage.sync.set({ root: rootEl.value || '~/Users/justin.loveless/Documents/Code' });
+    </script>
+  </body>
+</html>

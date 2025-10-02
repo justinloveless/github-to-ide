@@ -1,0 +1,9 @@
+{
+    "name": "com.lovelesslabs.vscodeopener",
+    "description": "GitHub \u2192 VS Code native helper",
+    "path": "__HOST_PATH__",
+    "type": "stdio",
+    "allowed_origins": [
+        "chrome-extension://__EXTENSION_ID__/"
+    ]
+}

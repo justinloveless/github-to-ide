@@ -1,0 +1,39 @@
+{
+    "manifest_version": 3,
+    "name": "GitHub \u2192 VS Code Interceptor",
+    "version": "0.1.0",
+    "description": "Intercept GitHub links and open them in VS Code via a local helper.",
+    "permissions": [
+        "scripting",
+        "notifications",
+        "nativeMessaging",
+        "storage",
+        "tabs",
+        "webNavigation"
+    ],
+    "host_permissions": [
+        "https://github.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "action": {
+        "default_title": "GitHub \u2192 VS Code"
+    },
+    "icons": {
+        "128": "icons/icon128.png"
+    },
+    "options_page": "options.html",
+    "content_scripts": [
+        {
+            "matches": [
+                "https://github.com/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_start"
+        }
+    ]
+}
