@@ -10,18 +10,32 @@ GitHub to IDE intercepts GitHub links and sends them straight to the IDE of your
    cd github-to-ide
    ```
 
-2. **Load the extension**
-   - Run `./scripts/package-extension.sh` (optional) to create a clean ZIP under `dist/`, then load that folder via `chrome://extensions` (Developer Mode → Load unpacked).
-   - Or, load the raw `extension/` directory directly.
+2. **Load the extension (unpacked)**
+   1. Enable Developer Mode at `chrome://extensions` (or the equivalent URL in Arc/Brave).
+   2. Click **Load unpacked** and choose the `extension/` folder inside this repository.
+   
+   *Optional:* run `./scripts/package-extension.sh` to produce a ZIP in `dist/` that you can share with teammates. They must still extract that ZIP and choose the extracted folder with **Load unpacked**—Chrome will not load the ZIP directly.
 
 3. **Install the native host**
-   - After the extension is loaded, note its ID from `chrome://extensions`.
-   - Run the one-liner (replace `<extension-id>` with your ID):
-     ```bash
-     curl -fsSL https://raw.githubusercontent.com/justinloveless/github-to-ide/refs/heads/main/scripts/install-native-host-standalone.sh   | \
-       bash -s -- --extension-id <extension-id>
-     ```
-   - The script downloads the native helper to `~/.github-to-ide/native-host` and writes the manifest for Chrome/Arc/Brave/Chromium/Vivaldi.
+   - **Option A (know your extension ID):**
+     1. From `chrome://extensions`, copy the extension ID.
+     2. Run:
+        ```bash
+        curl -fsSL https://raw.githubusercontent.com/justinloveless/github-to-ide/refs/heads/main/scripts/install-native-host-standalone.sh | \
+          bash -s -- --extension-id <extension-id>
+        ```
+   - **Option B (no typing required):**
+     1. Open the extension options page.
+     2. At the bottom you’ll see a ready-to-copy command populated with *your* extension ID.
+        <p align="center">
+          <img src="assets/img1.png" width="420" alt="Options page showing native host command"/>
+        </p>
+     3. Click **Copy command** (or copy manually) and paste into your terminal.
+        <p align="center">
+          <img src="assets/img2.png" width="420" alt="Paste command into terminal"/>
+        </p>
+
+   The script downloads the native helper to `~/.github-to-ide/native-host` and writes the manifest for Chrome/Arc/Brave/Chromium/Vivaldi.
 
 4. **Configure**
    - Open the extension options page (`chrome://extensions` → Details → Extension options).
