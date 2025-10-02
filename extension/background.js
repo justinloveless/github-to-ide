@@ -84,7 +84,7 @@ const configReadyPromise = new Promise((resolve) => {
   configReadyResolve = resolve;
 });
 
-console.log("[bg] service worker initialized");
+console.log("[bg] GitHub to IDE service worker initialized");
 
 initializeSettings();
 
@@ -162,7 +162,7 @@ function storageSet(values) {
 function initializeSettings() {
   storageGet({
     [STORAGE_KEYS.CONFIG]: null,
-    [STORAGE_KEYS.AUTO_OPEN]: true,
+    [STORAGE_KEYS.AUTO_OPEN]: false,
     [STORAGE_KEYS.REPO_EDITORS]: {},
     cloneRoot: undefined,
     groupByOwner: undefined,
@@ -178,7 +178,7 @@ function initializeSettings() {
 
     applyConfig(config);
 
-    autoOpenEnabled = data[STORAGE_KEYS.AUTO_OPEN] !== false;
+    autoOpenEnabled = data[STORAGE_KEYS.AUTO_OPEN] === true;
     repoEditorMap = isPlainObject(data[STORAGE_KEYS.REPO_EDITORS]) ? data[STORAGE_KEYS.REPO_EDITORS] : {};
 
     configReadyResolve();
@@ -329,7 +329,7 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
     applyConfig(changes[STORAGE_KEYS.CONFIG].newValue);
   }
   if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.AUTO_OPEN)) {
-    autoOpenEnabled = changes[STORAGE_KEYS.AUTO_OPEN].newValue !== false;
+    autoOpenEnabled = changes[STORAGE_KEYS.AUTO_OPEN].newValue === true;
   }
   if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.REPO_EDITORS)) {
     const { newValue } = changes[STORAGE_KEYS.REPO_EDITORS];
@@ -355,12 +355,13 @@ chrome.notifications?.onClosed.addListener((notificationId) => {
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("GitHub → VS Code Interceptor installed.");
+  console.log("GitHub to IDE installed.");
   storageGet({ [STORAGE_KEYS.CONFIG]: null }).then((data) => {
     if (!data[STORAGE_KEYS.CONFIG]) {
       storageSet({ [STORAGE_KEYS.CONFIG]: DEFAULT_CONFIG }).catch(() => {});
     }
   });
+  storageSet({ [STORAGE_KEYS.AUTO_OPEN]: false }).catch(() => {});
 });
 
 chrome.webNavigation?.onBeforeNavigate?.addListener(async (details) => {
@@ -493,7 +494,7 @@ async function maybeIntercept(url, tabId, { force = false, editorId: overrideEdi
         await warnAndSwitch(response, tabId);
         return { handled: true, status: "WRONG_BRANCH", editorId, openMode };
       case "ERROR":
-        notify("GitHub → VS Code: " + response.message);
+        notify("GitHub to IDE: " + response.message);
         return { handled: true, status: "ERROR", message: response.message, editorId, openMode };
       default:
         return { handled: true, status: response.status || "UNKNOWN", editorId, openMode };
@@ -516,7 +517,7 @@ async function confirmAndClone(info, tabId) {
   const res = await sendNativeMessage({ action: "clone", remote: info.remote, localPath: info.localPath, config: buildHostConfig() });
   if (res?.status === "CLONED") {
     const openRes = await sendNativeMessage(info.openPayload);
-    if (openRes?.status !== "OPENED") notify("GitHub → VS Code: Clone completed but opening failed.");
+    if (openRes?.status !== "OPENED") notify("GitHub to IDE: Clone completed but opening failed.");
   } else if (res?.status === "ERROR") {
     notify("Clone failed: " + res.message);
   }
@@ -534,7 +535,7 @@ async function warnAndSwitch(info, tabId) {
   const res = await sendNativeMessage({ action: "switchBranch", localPath: info.localPath, branch: info.expectedBranch });
   if (res?.status === "SWITCHED") {
     const openRes = await sendNativeMessage(info.openPayload);
-    if (openRes?.status !== "OPENED") notify("GitHub → VS Code: Branch switched but opening failed.");
+    if (openRes?.status !== "OPENED") notify("GitHub to IDE: Branch switched but opening failed.");
   } else if (res?.status === "ERROR") {
     notify("Branch switch failed: " + res.message);
   }
@@ -544,7 +545,7 @@ function notify(message) {
   chrome.notifications?.create({
     type: "basic",
     iconUrl: "icons/icon128.png",
-    title: "GitHub → VS Code",
+    title: "GitHub to IDE",
     message,
   });
 }

@@ -447,7 +447,7 @@ function handleSwitchBranch(msg) {
 
 function handleChooseCloneRoot() {
   if (process.platform === 'darwin') {
-    const script = 'set theFolder to choose folder with prompt "Select clone root for GitHub → VS Code"\nPOSIX path of theFolder';
+    const script = 'set theFolder to choose folder with prompt "Select clone root for GitHub to IDE"\nPOSIX path of theFolder';
     const res = spawnSync('osascript', ['-e', script], { encoding: 'utf8' });
     if (res.error) {
       return { status: 'ERROR', message: res.error.message };

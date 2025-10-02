@@ -175,7 +175,7 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
     setStatus("Settings updated.");
   }
   if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.AUTO_OPEN)) {
-    autoCheckbox.checked = changes[STORAGE_KEYS.AUTO_OPEN].newValue !== false;
+    autoCheckbox.checked = changes[STORAGE_KEYS.AUTO_OPEN].newValue === true;
   }
 });
 
@@ -189,7 +189,7 @@ function applyConfig(raw) {
 async function init() {
   const data = await storageGet({
     [STORAGE_KEYS.CONFIG]: null,
-    [STORAGE_KEYS.AUTO_OPEN]: true,
+    [STORAGE_KEYS.AUTO_OPEN]: false,
   });
   if (data[STORAGE_KEYS.CONFIG]) {
     applyConfig(data[STORAGE_KEYS.CONFIG]);
@@ -197,7 +197,7 @@ async function init() {
     currentConfig = structuredClone(DEFAULT_CONFIG);
     await persistConfig();
   }
-  autoCheckbox.checked = data[STORAGE_KEYS.AUTO_OPEN] !== false;
+  autoCheckbox.checked = data[STORAGE_KEYS.AUTO_OPEN] === true;
   groupCheckbox.checked = currentConfig.groupByOwner === true;
   updateCloneRootPath(currentConfig.cloneRoot);
 }

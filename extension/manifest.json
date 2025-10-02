@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "GitHub \u2192 VS Code Interceptor",
+    "name": "GitHub to IDE",
     "version": "0.1.0",
-    "description": "Intercept GitHub links and open them in VS Code via a local helper.",
+    "description": "Intercept GitHub links and open them in your preferred IDE via a local helper.",
     "permissions": [
         "scripting",
         "notifications",
@@ -19,7 +19,7 @@
         "type": "module"
     },
     "action": {
-        "default_title": "GitHub \u2192 VS Code",
+        "default_title": "GitHub to IDE",
         "default_popup": "popup.html"
     },
     "icons": {

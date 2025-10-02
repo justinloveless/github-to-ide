@@ -101,7 +101,7 @@ host_script = os.environ['HOST_SCRIPT']
 ext_ids = [ext_id for ext_id in os.environ.get('EXT_IDS', '').split(',') if ext_id]
 manifest = {
     "name": "com.lovelesslabs.vscodeopener",
-    "description": "GitHub → VS Code native helper",
+    "description": "GitHub to IDE native helper",
     "path": host_script,
     "type": "stdio",
     "allowed_origins": [f"chrome-extension://{ext_id}/" for ext_id in ext_ids]

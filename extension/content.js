@@ -239,7 +239,7 @@ function buildHeaderElements() {
 
   const labelSpan = document.createElement("span");
   labelSpan.className = "Button-label";
-  labelSpan.textContent = "VS Code";
+  labelSpan.textContent = "IDE";
 
   mainContent.appendChild(labelSpan);
   mainButton.appendChild(mainContent);
@@ -396,8 +396,8 @@ function addOpenModeSection(menu, dropdown) {
     menu.appendChild(item);
   };
 
-  createModeItem(OPEN_MODE_REPO, "Open entire workspace by default");
-  createModeItem(OPEN_MODE_FILE, "Open current file only by default");
+  createModeItem(OPEN_MODE_REPO, "Workspace");
+  createModeItem(OPEN_MODE_FILE, "Current file only");
 }
 
 function addMenuDivider(menu) {

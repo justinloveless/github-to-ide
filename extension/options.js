@@ -1,6 +1,7 @@
 const STORAGE_KEYS = {
   CONFIG: "config",
   AUTO_OPEN: "autoOpenEnabled",
+  REPO_EDITORS: "repoEditorMap",
 };
 
 const DEFAULT_EDITORS = [
@@ -131,16 +132,20 @@ const editorsTextarea = document.getElementById("editors-json");
 const saveBtn = document.getElementById("save");
 const resetBtn = document.getElementById("reset");
 const openBtn = document.getElementById("open-current");
+const repoListContainer = document.getElementById("repo-editor-list");
+const clearRepoBtn = document.getElementById("clear-repo-overrides");
 const statusEl = document.getElementById("status");
 
 let currentConfig = structuredClone(DEFAULT_CONFIG);
+let repoEditorMap = {};
 
 init().catch((err) => setStatus(err?.message || String(err), "error"));
 
 async function init() {
   const data = await storageGet({
     [STORAGE_KEYS.CONFIG]: null,
-    [STORAGE_KEYS.AUTO_OPEN]: true,
+    [STORAGE_KEYS.AUTO_OPEN]: false,
+    [STORAGE_KEYS.REPO_EDITORS]: {},
   });
 
   if (data[STORAGE_KEYS.CONFIG]) {
@@ -150,7 +155,8 @@ async function init() {
     await storageSet({ [STORAGE_KEYS.CONFIG]: currentConfig });
   }
 
-  autoCheckbox.checked = data[STORAGE_KEYS.AUTO_OPEN] !== false;
+  autoCheckbox.checked = data[STORAGE_KEYS.AUTO_OPEN] === true;
+  repoEditorMap = isPlainObject(data[STORAGE_KEYS.REPO_EDITORS]) ? data[STORAGE_KEYS.REPO_EDITORS] : {};
   renderConfig();
 }
 
@@ -166,6 +172,7 @@ function renderConfig() {
     radio.checked = radio.value === currentConfig.openMode;
   }
   updateEditorControls();
+  renderRepoOverrides();
 }
 
 function updateEditorControls() {
@@ -211,11 +218,14 @@ saveBtn.addEventListener("click", async () => {
 
 resetBtn.addEventListener("click", async () => {
   currentConfig = structuredClone(DEFAULT_CONFIG);
-  autoCheckbox.checked = true;
+  autoCheckbox.checked = false;
   await storageSet({
     [STORAGE_KEYS.CONFIG]: currentConfig,
-    [STORAGE_KEYS.AUTO_OPEN]: true,
+    [STORAGE_KEYS.AUTO_OPEN]: false,
+    [STORAGE_KEYS.REPO_EDITORS]: {},
   });
+  repoEditorMap = {};
+  renderRepoOverrides();
   renderConfig();
   setStatus("Reset to defaults.");
 });
@@ -296,6 +306,37 @@ openBtn.addEventListener("click", async () => {
   }
 });
 
+if (clearRepoBtn) {
+  clearRepoBtn.addEventListener("click", async () => {
+    if (!Object.keys(repoEditorMap).length) return;
+    repoEditorMap = {};
+    renderRepoOverrides();
+    try {
+      await storageSet({ [STORAGE_KEYS.REPO_EDITORS]: repoEditorMap });
+      setStatus("Cleared per-repository overrides.");
+    } catch (err) {
+      setStatus(err?.message || String(err), "error");
+    }
+  });
+}
+
+if (repoListContainer) {
+  repoListContainer.addEventListener("click", async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLButtonElement)) return;
+    const repoKey = target.dataset.repoKey;
+    if (!repoKey) return;
+    delete repoEditorMap[repoKey];
+    renderRepoOverrides();
+    try {
+      await storageSet({ [STORAGE_KEYS.REPO_EDITORS]: repoEditorMap });
+      setStatus(`Removed override for ${repoKey}.`);
+    } catch (err) {
+      setStatus(err?.message || String(err), "error");
+    }
+  });
+}
+
 chrome.storage?.onChanged?.addListener((changes, areaName) => {
   if (areaName !== "sync" && areaName !== "local") return;
   if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.CONFIG)) {
@@ -304,7 +345,13 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
     setStatus("Settings updated in another window.");
   }
   if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.AUTO_OPEN)) {
-    autoCheckbox.checked = changes[STORAGE_KEYS.AUTO_OPEN].newValue !== false;
+    autoCheckbox.checked = changes[STORAGE_KEYS.AUTO_OPEN].newValue === true;
+  }
+  if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.REPO_EDITORS)) {
+    repoEditorMap = isPlainObject(changes[STORAGE_KEYS.REPO_EDITORS].newValue)
+      ? changes[STORAGE_KEYS.REPO_EDITORS].newValue
+      : {};
+    renderRepoOverrides();
   }
 });
 
@@ -389,6 +436,62 @@ function sanitizeEditor(entry) {
 
 function structuredClone(data) {
   return JSON.parse(JSON.stringify(data));
+}
+
+function renderRepoOverrides() {
+  if (!repoListContainer) return;
+  repoListContainer.innerHTML = "";
+  const entries = Object.entries(repoEditorMap || {}).sort(([a], [b]) => a.localeCompare(b));
+  if (clearRepoBtn) clearRepoBtn.disabled = entries.length === 0;
+  if (!entries.length) {
+    const empty = document.createElement("div");
+    empty.className = "repo-list-empty";
+    empty.textContent = "No overrides saved.";
+    repoListContainer.appendChild(empty);
+    return;
+  }
+
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  ["Repository", "Editor", "Actions"].forEach((text) => {
+    const th = document.createElement("th");
+    th.textContent = text;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  entries.forEach(([repoKey, editorId]) => {
+    const tr = document.createElement("tr");
+
+    const repoTd = document.createElement("td");
+    repoTd.textContent = repoKey;
+    tr.appendChild(repoTd);
+
+    const editorTd = document.createElement("td");
+    const editor = currentConfig.editors.find((ed) => ed.id === editorId);
+    editorTd.textContent = editor ? `${editor.name} (${editor.id})` : editorId;
+    tr.appendChild(editorTd);
+
+    const actionTd = document.createElement("td");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Remove";
+    btn.dataset.repoKey = repoKey;
+    actionTd.appendChild(btn);
+    tr.appendChild(actionTd);
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  repoListContainer.appendChild(table);
+}
+
+function isPlainObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value);
 }
 
 function setStatus(text, tone = "info") {
