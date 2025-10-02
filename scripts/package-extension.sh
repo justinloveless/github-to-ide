@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 EXT_DIR="$ROOT_DIR/extension"
 DIST_DIR="$ROOT_DIR/dist"
 TS="$(date +%Y%m%d-%H%M%S)"
-ZIP_NAME="github-vscode-interceptor-$TS.zip"
+ZIP_NAME="github-to-ide-$TS.zip"
 OUTPUT="$DIST_DIR/$ZIP_NAME"
 
 if [ ! -d "$EXT_DIR" ]; then

@@ -1,50 +1,53 @@
 # GitHub to IDE
 
-A browser extension + native helper that intercepts GitHub file URLs and opens the matching file or workspace in your local IDE.
+GitHub to IDE intercepts GitHub links and sends them straight to the IDE of your choice. It works in any Chromium-based browser (Chrome, Arc, Brave, Chromium, etc.) and supports multiple editors (VS Code, Rider, Cursor out of the box).
 
-## Sharing with teammates
+## Quick install
 
-### 1. Package the extension
-Use the helper script to create a timestamped ZIP archive under `dist/`:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/justinloveless/github-vscode-interceptor.git
+   cd github-vscode-interceptor
+   ```
 
-```bash
-./scripts/package-extension.sh
-```
+2. **Load the extension**
+   - Run `./scripts/package-extension.sh` (optional) to create a clean ZIP under `dist/`, then load that folder via `chrome://extensions` (Developer Mode → Load unpacked).
+   - Or, load the raw `extension/` directory directly.
 
-Share the generated file (for example via Slack or a shared drive). Each teammate can extract or "Load unpacked" from that directory. If you have a private signing key you can also use Chrome's "Pack extension" feature to create a `.crx` for an even smoother install.
+3. **Install the native host**
+   - After the extension is loaded, note its ID from `chrome://extensions`.
+   - Run the one-liner (replace `<extension-id>` with your ID):
+     ```bash
+     curl -fsSL https://raw.githubusercontent.com/justinloveless/github-vscode-interceptor/main/scripts/install-native-host-standalone.sh | \
+       bash -s -- --extension-id <extension-id>
+     ```
+   - The script downloads the native helper to `~/.github-to-ide/native-host` and writes the manifest for Chrome/Arc/Brave/Chromium/Vivaldi.
 
-### 2. Load the extension (Chrome / Arc / Chromium)
-1. Open `chrome://extensions/` (Arc users open Little Arc and paste the URL).
-2. Toggle **Developer mode** on.
-3. Click **Load unpacked** and choose the folder that contains the extension files (the unzipped package or this repo's `extension/` directory).
-4. Note the generated extension ID – you'll paste it in the next step so the native host trusts the browser.
+4. **Configure**
+   - Open the extension options page (`chrome://extensions` → Details → Extension options).
+   - Tweak clone root, default editor/open mode, and review per-repository overrides. The options screen shows the exact install command (with your extension ID) so you can re-run it later if needed.
 
-### 3. Install the native messaging host
-Run the helper (re-run whenever the extension ID changes):
+> Tip: the popup menu also has a direct link to the options page.
 
-```bash
-./scripts/install-native-host.sh --extension-id <your-extension-id>
-```
+## Scripts
 
-By default the script writes manifests for Chrome, Arc, and Chromium. Add `--target-dir` if you also need Brave/Vivaldi, or `--dry-run` to inspect changes first. The script writes an absolute `path` to `native-host/run.sh`, so keep the repo in a stable location.
+- `scripts/package-extension.sh` – packages the extension into `dist/github-to-ide-<timestamp>.zip` for easy sharing.
+- `scripts/install-native-host.sh` – installs the native host from a local checkout (if you already cloned the repo).
+- `scripts/install-native-host-standalone.sh` – downloads the latest host files from GitHub and writes the native messaging manifest (used by the curl one-liner above).
 
-### 4. Configure the native helper (optional)
-Open the extension’s **Options** page (via `chrome://extensions` → Details → Extension options) to configure clone locations, editor list, and default behaviours. All settings are stored in `chrome.storage.sync`; there is no longer a need to edit a JSON file on disk.
+## Editors
 
-### Editors
-- The native host supports multiple editors. Update `native-host/config.example.json` (and your personal `~/.github-vscode-interceptor.json`) to list the editors you want to expose – each entry can point at a different binary and argument template.
-- Reload the extension and you’ll see the “GitHub to IDE” button in the GitHub header. Click the caret to choose any configured editor; selecting one will set it as the repository default (hold <kbd>Alt</kbd> while clicking to open once without changing the default).
-- Repo-specific preferences sync via `chrome.storage.sync`, so the chosen editor is remembered per repository.
-- The button also lets you pick the default *open mode*: “Open entire workspace” launches a fresh window for the repo (then activates the requested file), while “Open file only” reuses the current window. Hold <kbd>Shift</kbd> when choosing an editor to perform the opposite mode just once.
-- `native-host/config.example.json` remains as a reference for the default editor templates, but it is no longer read by the native helper.
+- VS Code, JetBrains Rider, and Cursor are included by default. Add or edit entries via the options page – the configuration lives entirely in `chrome.storage`, so no manual JSON edits are needed.
+- Changing the editor from the header dropdown stores a per-repository override. The options page lists every override and lets you clear them individually or all at once.
+- The dropdown also selects the default *open mode* (workspace vs current file). Hold <kbd>Shift</kbd> while choosing an editor to perform the opposite mode once.
 
-## Native host prerequisites
-- macOS / Linux with Node.js installed (the wrapper checks common locations and honours `NODE_BIN` or `GITHUB_VSCODE_NODE`).
-- `code` command available somewhere on disk (the native host searches typical install paths if it isn't on `PATH`).
+## Development scripts
 
-## Dev scripts
-- `scripts/package-extension.sh` – bundle the extension into `dist/github-vscode-interceptor-<timestamp>.zip`.
-- `scripts/install-native-host.sh` – install/update the native host manifest for local browsers.
+- `scripts/install-native-host.sh` – install/update the native host using the files from your local checkout (handy while iterating).
+- `native-host/run.sh` – launcher for the Node-based host (`native-host/index.js`).
 
-## Limitations
-Browser vendors still require a manual step to load unpacked extensions; there is no true "single click" install without publishing to the Chrome Web Store. The scripts here minimise the remaining steps (zipping, manifest setup, config). To go fully hands-off, consider publishing a signed build and shipping the native host via a platform-specific installer package.
+## Notes
+
+- Restart the browser after installing the native host so the manifest reloads.
+- The project doesn’t bundle Node dependencies; only a recent Node runtime is required for the native helper.
+- GitHub to IDE is not (yet) published in the Chrome Web Store; installation is manual via Developer Mode.

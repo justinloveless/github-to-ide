@@ -134,6 +134,8 @@ const resetBtn = document.getElementById("reset");
 const openBtn = document.getElementById("open-current");
 const repoListContainer = document.getElementById("repo-editor-list");
 const clearRepoBtn = document.getElementById("clear-repo-overrides");
+const nativeHostCommandEl = document.getElementById("native-host-command");
+const copyCommandBtn = document.getElementById("copy-native-host-command");
 const statusEl = document.getElementById("status");
 
 let currentConfig = structuredClone(DEFAULT_CONFIG);
@@ -158,6 +160,7 @@ async function init() {
   autoCheckbox.checked = data[STORAGE_KEYS.AUTO_OPEN] === true;
   repoEditorMap = isPlainObject(data[STORAGE_KEYS.REPO_EDITORS]) ? data[STORAGE_KEYS.REPO_EDITORS] : {};
   renderConfig();
+  updateNativeHostCommand();
 }
 
 function applyConfig(raw) {
@@ -173,6 +176,7 @@ function renderConfig() {
   }
   updateEditorControls();
   renderRepoOverrides();
+  updateNativeHostCommand();
 }
 
 function updateEditorControls() {
@@ -306,6 +310,19 @@ openBtn.addEventListener("click", async () => {
   }
 });
 
+if (copyCommandBtn) {
+  copyCommandBtn.addEventListener("click", async () => {
+    const command = nativeHostCommandEl?.textContent?.trim();
+    if (!command) return;
+    try {
+      await navigator.clipboard.writeText(command);
+      setStatus("Install command copied to clipboard.");
+    } catch (err) {
+      setStatus(err?.message || String(err), "error");
+    }
+  });
+}
+
 if (clearRepoBtn) {
   clearRepoBtn.addEventListener("click", async () => {
     if (!Object.keys(repoEditorMap).length) return;
@@ -343,6 +360,7 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
     applyConfig(changes[STORAGE_KEYS.CONFIG].newValue);
     renderConfig();
     setStatus("Settings updated in another window.");
+    updateNativeHostCommand();
   }
   if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.AUTO_OPEN)) {
     autoCheckbox.checked = changes[STORAGE_KEYS.AUTO_OPEN].newValue === true;
@@ -492,6 +510,13 @@ function renderRepoOverrides() {
 
 function isPlainObject(value) {
   return value && typeof value === "object" && !Array.isArray(value);
+}
+
+function updateNativeHostCommand() {
+  if (!nativeHostCommandEl) return;
+  const extensionId = chrome.runtime?.id || "<extension-id>";
+  const command = `curl -fsSL https://raw.githubusercontent.com/justinloveless/github-vscode-interceptor/main/scripts/install-native-host-standalone.sh | bash -s -- --extension-id ${extensionId}`;
+  nativeHostCommandEl.textContent = command;
 }
 
 function setStatus(text, tone = "info") {
