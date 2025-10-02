@@ -67,9 +67,9 @@ if [[ "$INSTALL_ROOT" != /* ]]; then
 fi
 
 HOST_NAME="com.lovelesslabs.vscodeopener"
-RUN_URL="https://raw.githubusercontent.com/justinloveless/github-vscode-interceptor/$CHANNEL/native-host/run.sh"
-SCRIPT_URL="https://raw.githubusercontent.com/justinloveless/github-vscode-interceptor/$CHANNEL/native-host/index.js"
-PACKAGE_URL="https://raw.githubusercontent.com/justinloveless/github-vscode-interceptor/$CHANNEL/native-host/package.json"
+RUN_URL="https://raw.githubusercontent.com/justinloveless/github-to-ide/refs/heads/$CHANNEL/native-host/run.sh"
+SCRIPT_URL="https://raw.githubusercontent.com/justinloveless/github-to-ide/refs/heads/$CHANNEL/native-host/index.js"
+PACKAGE_URL="https://raw.githubusercontent.com/justinloveless/github-to-ide/refs/heads/$CHANNEL/native-host/package.json"
 
 TARGET_DIRS=(
   "$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"

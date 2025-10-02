@@ -6,8 +6,8 @@ GitHub to IDE intercepts GitHub links and sends them straight to the IDE of your
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/justinloveless/github-vscode-interceptor.git
-   cd github-vscode-interceptor
+   git clone https://github.com/justinloveless/github-to-ide.git
+   cd github-to-ide
    ```
 
 2. **Load the extension**
