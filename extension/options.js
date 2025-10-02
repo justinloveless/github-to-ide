@@ -2,6 +2,7 @@ const STORAGE_KEYS = {
   CONFIG: "config",
   AUTO_OPEN: "autoOpenEnabled",
   REPO_EDITORS: "repoEditorMap",
+  DARK_MODE: "darkMode",
 };
 
 const DEFAULT_EDITORS = [
@@ -122,6 +123,7 @@ function storageSet(values) {
 }
 
 const autoCheckbox = document.getElementById("auto-open");
+const darkModeToggle = document.getElementById("dark-mode-toggle");
 const rootInput = document.getElementById("clone-root");
 const chooseBtn = document.getElementById("choose-clone-root");
 const remoteInput = document.getElementById("default-remote");
@@ -150,6 +152,7 @@ async function init() {
     [STORAGE_KEYS.CONFIG]: null,
     [STORAGE_KEYS.AUTO_OPEN]: false,
     [STORAGE_KEYS.REPO_EDITORS]: {},
+    [STORAGE_KEYS.DARK_MODE]: false,
   });
 
   if (data[STORAGE_KEYS.CONFIG]) {
@@ -160,9 +163,11 @@ async function init() {
   }
 
   autoCheckbox.checked = data[STORAGE_KEYS.AUTO_OPEN] === true;
+  darkModeToggle.checked = data[STORAGE_KEYS.DARK_MODE] === true;
   repoEditorMap = isPlainObject(data[STORAGE_KEYS.REPO_EDITORS]) ? data[STORAGE_KEYS.REPO_EDITORS] : {};
   renderConfig();
   updateNativeHostCommand();
+  applyDarkMode(data[STORAGE_KEYS.DARK_MODE] === true);
 }
 
 function applyConfig(raw) {
@@ -240,6 +245,16 @@ autoCheckbox.addEventListener("change", async () => {
   try {
     await storageSet({ [STORAGE_KEYS.AUTO_OPEN]: autoCheckbox.checked });
     setStatus(autoCheckbox.checked ? "Automatic opening enabled." : "Automatic opening disabled.");
+  } catch (err) {
+    setStatus(err?.message || String(err), "error");
+  }
+});
+
+darkModeToggle.addEventListener("change", async () => {
+  try {
+    await storageSet({ [STORAGE_KEYS.DARK_MODE]: darkModeToggle.checked });
+    applyDarkMode(darkModeToggle.checked);
+    setStatus(darkModeToggle.checked ? "Dark mode enabled." : "Dark mode disabled.");
   } catch (err) {
     setStatus(err?.message || String(err), "error");
   }
@@ -389,6 +404,11 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
   }
   if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.AUTO_OPEN)) {
     autoCheckbox.checked = changes[STORAGE_KEYS.AUTO_OPEN].newValue === true;
+  }
+  if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.DARK_MODE)) {
+    const isDark = changes[STORAGE_KEYS.DARK_MODE].newValue === true;
+    darkModeToggle.checked = isDark;
+    applyDarkMode(isDark);
   }
   if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.REPO_EDITORS)) {
     repoEditorMap = isPlainObject(changes[STORAGE_KEYS.REPO_EDITORS].newValue)
@@ -590,4 +610,14 @@ function getActiveTab() {
       resolve(tabs?.[0]);
     });
   });
+}
+
+function applyDarkMode(enabled) {
+  if (enabled) {
+    document.documentElement.classList.add('dark-mode');
+    document.body.classList.add('dark-mode');
+  } else {
+    document.documentElement.classList.remove('dark-mode');
+    document.body.classList.remove('dark-mode');
+  }
 }

@@ -1,6 +1,7 @@
 const STORAGE_KEYS = {
   CONFIG: "config",
   AUTO_OPEN: "autoOpenEnabled",
+  DARK_MODE: "darkMode",
 };
 
 const DEFAULT_CONFIG = {
@@ -72,6 +73,7 @@ function storageSet(values) {
 
 const autoCheckbox = document.getElementById("auto-open");
 const groupCheckbox = document.getElementById("group-by-owner");
+const darkModeCheckbox = document.getElementById("dark-mode");
 const chooseBtn = document.getElementById("choose-clone-root");
 const cloneRootPathEl = document.getElementById("clone-root-path");
 const openBtn = document.getElementById("open-current");
@@ -92,6 +94,13 @@ groupCheckbox.addEventListener("change", async () => {
   currentConfig.groupByOwner = groupCheckbox.checked;
   await persistConfig();
   setStatus(currentConfig.groupByOwner ? "Repos will be grouped by owner." : "Repos will stay flat.");
+});
+
+darkModeCheckbox.addEventListener("change", async () => {
+  const value = darkModeCheckbox.checked;
+  await storageSet({ [STORAGE_KEYS.DARK_MODE]: value });
+  applyDarkMode(value);
+  setStatus(value ? "Dark mode enabled." : "Dark mode disabled.");
 });
 
 chooseBtn.addEventListener("click", async () => {
@@ -177,6 +186,11 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
   if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.AUTO_OPEN)) {
     autoCheckbox.checked = changes[STORAGE_KEYS.AUTO_OPEN].newValue === true;
   }
+  if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.DARK_MODE)) {
+    const isDark = changes[STORAGE_KEYS.DARK_MODE].newValue === true;
+    darkModeCheckbox.checked = isDark;
+    applyDarkMode(isDark);
+  }
 });
 
 function applyConfig(raw) {
@@ -186,10 +200,21 @@ function applyConfig(raw) {
   updateCloneRootPath(currentConfig.cloneRoot);
 }
 
+function applyDarkMode(enabled) {
+  if (enabled) {
+    document.documentElement.classList.add('dark-mode');
+    document.body.classList.add('dark-mode');
+  } else {
+    document.documentElement.classList.remove('dark-mode');
+    document.body.classList.remove('dark-mode');
+  }
+}
+
 async function init() {
   const data = await storageGet({
     [STORAGE_KEYS.CONFIG]: null,
     [STORAGE_KEYS.AUTO_OPEN]: false,
+    [STORAGE_KEYS.DARK_MODE]: false,
   });
   if (data[STORAGE_KEYS.CONFIG]) {
     applyConfig(data[STORAGE_KEYS.CONFIG]);
@@ -199,7 +224,9 @@ async function init() {
   }
   autoCheckbox.checked = data[STORAGE_KEYS.AUTO_OPEN] === true;
   groupCheckbox.checked = currentConfig.groupByOwner === true;
+  darkModeCheckbox.checked = data[STORAGE_KEYS.DARK_MODE] === true;
   updateCloneRootPath(currentConfig.cloneRoot);
+  applyDarkMode(data[STORAGE_KEYS.DARK_MODE] === true);
 }
 
 function updateCloneRootPath(value) {
