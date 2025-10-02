@@ -474,6 +474,9 @@ function main() {
     if (!msg) break;
     try {
       switch (msg.action) {
+        case 'ping':
+          writeMessage({ status: 'PONG' });
+          break;
         case 'resolve':
           writeMessage(handleResolve(msg));
           break;

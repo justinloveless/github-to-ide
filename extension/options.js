@@ -132,6 +132,8 @@ const editorsTextarea = document.getElementById("editors-json");
 const saveBtn = document.getElementById("save");
 const resetBtn = document.getElementById("reset");
 const openBtn = document.getElementById("open-current");
+const testConnectionBtn = document.getElementById("test-connection");
+const connectionStatusEl = document.getElementById("connection-status");
 const repoListContainer = document.getElementById("repo-editor-list");
 const clearRepoBtn = document.getElementById("clear-repo-overrides");
 const nativeHostCommandEl = document.getElementById("native-host-command");
@@ -307,6 +309,29 @@ openBtn.addEventListener("click", async () => {
     setStatus(err?.message || String(err), "error");
   } finally {
     openBtn.disabled = false;
+  }
+});
+
+testConnectionBtn.addEventListener("click", async () => {
+  testConnectionBtn.disabled = true;
+  setConnectionStatus("Testing native host connection…", "info");
+  try {
+    const response = await sendNative({ action: "ping" });
+    if (response && response.status === "PONG") {
+      setConnectionStatus("✅ Native host is connected and working!", "success");
+      setStatus("Native host connection successful.");
+    } else if (response) {
+      setConnectionStatus(`⚠️ Unexpected response: ${response.status || "unknown"}`, "warning");
+      setStatus("Native host responded but with unexpected status.", "error");
+    } else {
+      setConnectionStatus("❌ No response from native host.", "error");
+      setStatus("Native host is not responding. Please install it using the command below.", "error");
+    }
+  } catch (err) {
+    setConnectionStatus("❌ Native host not installed or not working.", "error");
+    setStatus("Native host connection failed. Please install it using the command below.", "error");
+  } finally {
+    testConnectionBtn.disabled = false;
   }
 });
 
@@ -522,6 +547,29 @@ function updateNativeHostCommand() {
 function setStatus(text, tone = "info") {
   statusEl.textContent = text || "";
   statusEl.style.color = tone === "error" ? "#c00" : "#555";
+}
+
+function setConnectionStatus(text, tone = "info") {
+  if (!connectionStatusEl) return;
+  connectionStatusEl.textContent = text || "";
+  connectionStatusEl.style.display = text ? "block" : "none";
+  if (tone === "success") {
+    connectionStatusEl.style.background = "#dff6dd";
+    connectionStatusEl.style.border = "1px solid #2da44e";
+    connectionStatusEl.style.color = "#1a7f37";
+  } else if (tone === "error") {
+    connectionStatusEl.style.background = "#ffebe9";
+    connectionStatusEl.style.border = "1px solid #cf222e";
+    connectionStatusEl.style.color = "#a40e26";
+  } else if (tone === "warning") {
+    connectionStatusEl.style.background = "#fff8c5";
+    connectionStatusEl.style.border = "1px solid #d4a72c";
+    connectionStatusEl.style.color = "#76540d";
+  } else {
+    connectionStatusEl.style.background = "#ddf4ff";
+    connectionStatusEl.style.border = "1px solid #54aeff";
+    connectionStatusEl.style.color = "#0969da";
+  }
 }
 
 function sendNative(payload) {

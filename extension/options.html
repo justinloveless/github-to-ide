@@ -76,8 +76,12 @@
 
     <section>
       <h2>Quick actions</h2>
-      <button id="open-current" type="button">Open current GitHub page</button>
-      <span class="hint">Uses the current default editor and open mode.</span>
+      <div class="actions">
+        <button id="open-current" type="button">Open current GitHub page</button>
+        <button id="test-connection" type="button">Test native host connection</button>
+      </div>
+      <p class="hint">Open current uses the default editor and open mode. Test connection verifies the native host is installed.</p>
+      <div id="connection-status" class="hint" style="margin-top:8px;padding:8px;border-radius:4px;"></div>
       <div style="margin-top:12px;">
         <label>Native host install command</label>
         <pre id="native-host-command" style="background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:8px;white-space:pre-wrap;word-break:break-all;margin-top:4px;"></pre>

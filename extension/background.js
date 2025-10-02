@@ -79,6 +79,7 @@ let groupByOwnerSetting = currentConfig.groupByOwner;
 let openModeSetting = currentConfig.openMode;
 let availableEditors = structuredClone(currentConfig.editors);
 let defaultEditorId = currentConfig.defaultEditor;
+let nativeHostConnected = false;
 let configReadyResolve;
 const configReadyPromise = new Promise((resolve) => {
   configReadyResolve = resolve;
@@ -87,6 +88,7 @@ const configReadyPromise = new Promise((resolve) => {
 console.log("[bg] GitHub to IDE service worker initialized");
 
 initializeSettings();
+checkNativeHostConnection();
 
 function normalizePath(value) {
   if (typeof value !== "string") return "";
@@ -338,6 +340,14 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
 });
 
 chrome.notifications?.onButtonClicked.addListener((notificationId, buttonIndex) => {
+  // Handle first-run notification button clicks (open options)
+  if (buttonIndex === 0 && !pendingPrompts.has(notificationId)) {
+    chrome.runtime.openOptionsPage();
+    chrome.notifications.clear(notificationId);
+    return;
+  }
+  
+  // Handle existing prompt notifications
   const entry = pendingPrompts.get(notificationId);
   if (!entry) return;
   pendingPrompts.delete(notificationId);
@@ -354,7 +364,7 @@ chrome.notifications?.onClosed.addListener((notificationId) => {
   entry.resolve(false);
 });
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   console.log("GitHub to IDE installed.");
   storageGet({ [STORAGE_KEYS.CONFIG]: null }).then((data) => {
     if (!data[STORAGE_KEYS.CONFIG]) {
@@ -362,7 +372,30 @@ chrome.runtime.onInstalled.addListener(() => {
     }
   });
   storageSet({ [STORAGE_KEYS.AUTO_OPEN]: false }).catch(() => {});
+  
+  // Show first-run notification
+  if (details.reason === "install") {
+    showFirstRunNotification();
+  }
 });
+
+function showFirstRunNotification() {
+  chrome.notifications?.create({
+    type: "basic",
+    iconUrl: "icons/icon128.png",
+    title: "GitHub to IDE - Setup Required",
+    message: "Welcome! Please open the extension options to complete setup. You'll need to install a native helper to connect to your IDE.",
+    priority: 2,
+    buttons: [
+      { title: "Open Options" },
+      { title: "Dismiss" },
+    ],
+  }, (notificationId) => {
+    if (chrome.runtime.lastError) {
+      console.warn("[bg] failed to show first-run notification", chrome.runtime.lastError.message);
+    }
+  });
+}
 
 chrome.webNavigation?.onBeforeNavigate?.addListener(async (details) => {
   if (details.frameId !== 0) return;
@@ -649,10 +682,43 @@ function sendNativeMessage(payload) {
     chrome.runtime.sendNativeMessage(HOST_NAME, payload, (response) => {
       if (chrome.runtime.lastError) {
         console.error("[bg] native message error", chrome.runtime.lastError);
+        updateNativeHostStatus(false);
         resolve(null);
         return;
       }
+      updateNativeHostStatus(true);
       resolve(response);
     });
   });
+}
+
+function checkNativeHostConnection() {
+  chrome.runtime.sendNativeMessage(HOST_NAME, { action: "ping" }, (response) => {
+    if (chrome.runtime.lastError) {
+      updateNativeHostStatus(false);
+      console.log("[bg] native host not connected:", chrome.runtime.lastError.message);
+    } else if (response?.status === "PONG") {
+      updateNativeHostStatus(true);
+      console.log("[bg] native host connected");
+    } else {
+      updateNativeHostStatus(false);
+      console.log("[bg] native host responded with unexpected status");
+    }
+  });
+}
+
+function updateNativeHostStatus(connected) {
+  if (nativeHostConnected === connected) return;
+  nativeHostConnected = connected;
+  
+  if (chrome.action?.setBadgeText && chrome.action?.setBadgeBackgroundColor) {
+    if (!connected) {
+      chrome.action.setBadgeText({ text: "!" });
+      chrome.action.setBadgeBackgroundColor({ color: "#cf222e" });
+      chrome.action.setTitle({ title: "GitHub to IDE - Native host not connected. Click to open options." });
+    } else {
+      chrome.action.setBadgeText({ text: "" });
+      chrome.action.setTitle({ title: "GitHub to IDE" });
+    }
+  }
 }

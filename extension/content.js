@@ -13,7 +13,7 @@ const OPEN_MODE_REPO = "repo";
 const OPEN_MODE_FILE = "file";
 const STATE_CLASSES = ["is-working", "is-success", "is-error"];
 
-let autoOpenEnabled = true;
+let autoOpenEnabled = false;
 let headerObserver = null;
 let headerElements = null; // { container, mainButton, labelSpan, dropdown, toggleSummary, menu }
 let currentEditors = [];
@@ -55,6 +55,36 @@ function loadSetting() {
   });
 }
 
+function isRelevantGitHubUrl(url) {
+  if (!url || !url.startsWith("https://github.com/")) return false;
+  
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean);
+    
+    // Must have at least owner/repo
+    if (parts.length < 2) return false;
+    
+    // Filter out non-repository URLs
+    const [owner, repo, type] = parts;
+    
+    // Exclude GitHub system pages
+    if (["settings", "notifications", "explore", "features", "pricing", "marketplace", "enterprise", "login", "signup"].includes(owner)) {
+      return false;
+    }
+    
+    // Only intercept repository pages, file views (blob), and directory views (tree)
+    // If there's a type, it must be one of these
+    if (type && !["blob", "tree", "commits", "commit", "pull", "issues", "wiki", "releases", "tags"].includes(type)) {
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
 function setupAutoOpenClickListener() {
   addEventListener("click", (e) => {
     if (!autoOpenEnabled) return;
@@ -65,7 +95,7 @@ function setupAutoOpenClickListener() {
     if (!a) return;
 
     const url = a.href;
-    if (!url || !url.startsWith("https://github.com/")) return;
+    if (!isRelevantGitHubUrl(url)) return;
 
     chrome.runtime.sendMessage({ type: "GITHUB_LINK_CLICK", url });
   });
