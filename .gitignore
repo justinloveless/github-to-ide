@@ -1,0 +1,4 @@
+*.pem
+dist/*
+!dist/*.zip
+!dist/*.crx
