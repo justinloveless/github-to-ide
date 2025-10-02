@@ -29,14 +29,14 @@ Run the helper (re-run whenever the extension ID changes):
 By default the script writes manifests for Chrome, Arc, and Chromium. Add `--target-dir` if you also need Brave/Vivaldi, or `--dry-run` to inspect changes first. The script writes an absolute `path` to `native-host/run.sh`, so keep the repo in a stable location.
 
 ### 4. Configure the native helper (optional)
-Copy and edit the sample config if you want to customise clone locations or VS Code command:
+Open the extension’s **Options** page (via `chrome://extensions` → Details → Extension options) to configure clone locations, editor list, and default behaviours. All settings are stored in `chrome.storage.sync`; there is no longer a need to edit a JSON file on disk.
 
-```bash
-cp native-host/config.example.json ~/.github-vscode-interceptor.json
-# then edit the file to match your environment
-```
-
-Restart the browser so the updated native host manifest is picked up.
+### Editors
+- The native host supports multiple editors. Update `native-host/config.example.json` (and your personal `~/.github-vscode-interceptor.json`) to list the editors you want to expose – each entry can point at a different binary and argument template.
+- Reload the extension and you’ll see a “VS Code” button in the GitHub header. Click the caret to choose any configured editor; selecting one will set it as the repository default (hold <kbd>Alt</kbd> while clicking to open once without changing the default).
+- Repo-specific preferences sync via `chrome.storage.sync`, so the chosen editor is remembered per repository.
+- The button also lets you pick the default *open mode*: “Open entire workspace” launches a fresh window for the repo (then activates the requested file), while “Open file only” reuses the current window. Hold <kbd>Shift</kbd> when choosing an editor to perform the opposite mode just once.
+- `native-host/config.example.json` remains as a reference for the default editor templates, but it is no longer read by the native helper.
 
 ## Native host prerequisites
 - macOS / Linux with Node.js installed (the wrapper checks common locations and honours `NODE_BIN` or `GITHUB_VSCODE_NODE`).

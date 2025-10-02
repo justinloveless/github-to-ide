@@ -1,27 +1,76 @@
-
 <!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>GitHub → VS Code Options</title>
+    <title>GitHub → VS Code Settings</title>
     <style>
-      body { font-family: system-ui, sans-serif; padding: 16px; }
+      body { font-family: system-ui, sans-serif; padding: 16px; max-width: 720px; }
+      h1 { margin-top: 0; }
+      section { border: 1px solid #d0d7de; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+      section > h2 { margin-top: 0; font-size: 16px; }
       label { display: block; margin-bottom: 8px; }
+      input[type="text"], textarea, select { width: 100%; box-sizing: border-box; padding: 6px 8px; margin-top: 4px; }
+      textarea { min-height: 160px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+      .inline { display: inline-flex; align-items: center; gap: 8px; }
+      .actions { display: flex; gap: 8px; }
+      .status { margin-top: 8px; font-size: 14px; color: #555; min-height: 18px; }
+      .hint { font-size: 12px; color: #666; }
+      .radio-group { display: flex; gap: 16px; margin-top: 8px; }
+      button { padding: 6px 12px; }
     </style>
   </head>
   <body>
     <h1>GitHub → VS Code</h1>
-    <p>Default clone root (use <code>~/Users/justin.loveless/Documents/Code</code> style paths):</p>
-    <label>
-      <input id="root" type="text" placeholder="~/Users/justin.loveless/Documents/Code" />
-    </label>
-    <button id="save">Save</button>
 
-    <script>
-      const rootEl = document.getElementById('root');
-      const saveBtn = document.getElementById('save');
-      chrome.storage.sync.get(['root'], (v) => { rootEl.value = v.root || '~/Users/justin.loveless/Documents/Code'; });
-      saveBtn.onclick = () => chrome.storage.sync.set({ root: rootEl.value || '~/Users/justin.loveless/Documents/Code' });
-    </script>
+    <section>
+      <h2>General</h2>
+      <label class="inline"><input id="auto-open" type="checkbox" /> Open GitHub links automatically</label>
+      <label>Clone root
+        <input id="clone-root" type="text" placeholder="~/Documents/Code" />
+      </label>
+      <div class="actions">
+        <button id="choose-clone-root" type="button">Choose…</button>
+        <span class="hint">The folder where repositories will be created or located.</span>
+      </div>
+      <label>Default remote name
+        <input id="default-remote" type="text" placeholder="origin" />
+      </label>
+      <label class="inline"><input id="group-by-owner" type="checkbox" /> Create subfolders per organization/owner</label>
+      <div>
+        <span>Default open mode</span>
+        <div class="radio-group">
+          <label class="inline"><input type="radio" name="open-mode" value="repo" /> Open entire workspace</label>
+          <label class="inline"><input type="radio" name="open-mode" value="file" /> Open file only</label>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Editors</h2>
+      <label>Default editor
+        <select id="default-editor"></select>
+      </label>
+      <label>Editor definitions (JSON array)
+        <textarea id="editors-json"></textarea>
+      </label>
+      <p class="hint">
+        Each editor entry must include an <code>id</code>, <code>name</code>, <code>command</code> (or alternates),
+        and optional <code>args</code> arrays: <code>fileWithLine</code>, <code>fileInRepo</code>, <code>file</code>, <code>folder</code>.
+      </p>
+    </section>
+
+    <section>
+      <h2>Quick actions</h2>
+      <button id="open-current" type="button">Open current GitHub page</button>
+      <span class="hint">Uses the current default editor and open mode.</span>
+    </section>
+
+    <div class="actions">
+      <button id="save" type="button">Save settings</button>
+      <button id="reset" type="button">Reset to defaults</button>
+    </div>
+    <div id="status" class="status"></div>
+
+    <script type="module" src="options.js"></script>
   </body>
 </html>

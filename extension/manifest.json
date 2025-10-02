@@ -19,7 +19,8 @@
         "type": "module"
     },
     "action": {
-        "default_title": "GitHub \u2192 VS Code"
+        "default_title": "GitHub \u2192 VS Code",
+        "default_popup": "popup.html"
     },
     "icons": {
         "128": "icons/icon128.png"

@@ -1,5 +1,51 @@
 {
-    "cloneRoot": "~/Users/justin.loveless/Documents/Code",
-    "codeCmd": "code",
-    "defaultRemote": "origin"
+    "cloneRoot": "~/Documents/Code",
+    "defaultRemote": "origin",
+    "groupByOwner": false,
+    "openMode": "repo",
+    "defaultEditor": "code",
+    "editors": [
+      {
+        "id": "code",
+        "name": "VS Code",
+        "command": "code",
+        "args": {
+          "fileWithLine": ["--reuse-window", "-g", "{path}:{line}"],
+          "file": ["--reuse-window", "-g", "{path}"],
+          "fileInRepo": ["--reuse-window", "-g", "{path}:{line}"],
+          "folder": ["-n", "{path}"]
+        },
+        "alternates": [
+          "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code",
+          "/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin/code"
+        ]
+      },
+      {
+        "id": "rider",
+        "name": "JetBrains Rider",
+        "command": "open",
+        "args": {
+          "fileWithLine": ["-na", "Rider.app", "--args", "--line", "{line}", "{path}"],
+          "file": ["-na", "Rider.app", "--args", "{path}"],
+          "fileInRepo": ["-a", "Rider.app", "--args", "--line", "{line}", "{path}"],
+          "folder": ["-na", "Rider.app", "--args", "{path}"]
+        },
+        "alternates": []
+      },
+      {
+        "id": "cursor",
+        "name": "Cursor",
+        "command": "cursor",
+        "args": {
+          "fileWithLine": ["{path}:{line}"],
+          "file": ["{path}"],
+          "fileInRepo": ["{path}:{line}"],
+          "folder": ["{path}"]
+        },
+        "alternates": [
+          "/Applications/Cursor.app/Contents/MacOS/Cursor",
+          "C:/Users/%USERNAME%/AppData/Local/Programs/cursor-app/cursor.exe"
+        ]
+      }
+    ]
   }

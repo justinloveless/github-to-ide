@@ -1,10 +1,341 @@
 import { parseGitHubUrl } from "./url.js";
 
 const HOST_NAME = "com.lovelesslabs.vscodeopener";
-const pendingPrompts = new Map();
 const PROMPT_TIMEOUT_MS = 30000;
 
+const STORAGE_KEYS = {
+  CONFIG: "config",
+  AUTO_OPEN: "autoOpenEnabled",
+  REPO_EDITORS: "repoEditorMap",
+};
+
+const DEFAULT_EDITORS = [
+  {
+    id: "code",
+    name: "VS Code",
+    command: "code",
+    args: {
+      fileWithLine: ["--reuse-window", "-g", "{path}:{line}"],
+      file: ["--reuse-window", "-g", "{path}"],
+      fileInRepo: ["--reuse-window", "-g", "{path}:{line}"],
+      folder: ["-n", "{path}"],
+    },
+    alternates: [
+      "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code",
+      "/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin/code",
+      "code.cmd",
+    ],
+  },
+  {
+    id: "rider",
+    name: "JetBrains Rider",
+    command: "open",
+    args: {
+      fileWithLine: ["-na", "Rider.app", "--args", "--line", "{line}", "{path}"],
+      file: ["-na", "Rider.app", "--args", "{path}"],
+      fileInRepo: ["-a", "Rider.app", "--args", "--line", "{line}", "{path}"],
+      folder: ["-na", "Rider.app", "--args", "{path}"],
+    },
+    alternates: [
+      "/Applications/Rider.app/Contents/MacOS/rider",
+      "/Applications/JetBrains Toolbox/Rider.app/Contents/MacOS/rider",
+      "C:/Program Files/JetBrains/Rider/bin/rider64.exe",
+    ],
+  },
+  {
+    id: "cursor",
+    name: "Cursor",
+    command: "cursor",
+    args: {
+      fileWithLine: ["{path}:{line}"],
+      file: ["{path}"],
+      fileInRepo: ["{path}:{line}"],
+      folder: ["{path}"],
+    },
+    alternates: [
+      "/Applications/Cursor.app/Contents/MacOS/Cursor",
+      "C:/Users/%USERNAME%/AppData/Local/Programs/cursor-app/cursor.exe",
+    ],
+  },
+];
+
+const DEFAULT_CONFIG = {
+  cloneRoot: "~/Documents/Code",
+  defaultRemote: "origin",
+  groupByOwner: false,
+  openMode: "repo",
+  defaultEditor: "code",
+  editors: DEFAULT_EDITORS,
+};
+
+const pendingPrompts = new Map();
+const recentIntercepts = new Map();
+
+let currentConfig = structuredClone(DEFAULT_CONFIG);
+let autoOpenEnabled = true;
+let repoEditorMap = {};
+let cloneRootSetting = normalizePath(currentConfig.cloneRoot);
+let groupByOwnerSetting = currentConfig.groupByOwner;
+let openModeSetting = currentConfig.openMode;
+let availableEditors = structuredClone(currentConfig.editors);
+let defaultEditorId = currentConfig.defaultEditor;
+let configReadyResolve;
+const configReadyPromise = new Promise((resolve) => {
+  configReadyResolve = resolve;
+});
+
 console.log("[bg] service worker initialized");
+
+initializeSettings();
+
+function normalizePath(value) {
+  if (typeof value !== "string") return "";
+  return value.replace(/[\\/]+$/, "");
+}
+
+function isPlainObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value);
+}
+
+function structuredClone(data) {
+  return JSON.parse(JSON.stringify(data));
+}
+
+function getStorageAreas() {
+  const areas = [];
+  if (chrome.storage?.sync) areas.push(chrome.storage.sync);
+  if (chrome.storage?.local && chrome.storage.local !== chrome.storage.sync) areas.push(chrome.storage.local);
+  return areas;
+}
+
+function storageGet(keys) {
+  const areas = getStorageAreas();
+  if (!areas.length) return Promise.resolve({});
+  let index = 0;
+  return new Promise((resolve) => {
+    const tryNext = () => {
+      const area = areas[index];
+      area.get(keys, (result) => {
+        if (chrome.runtime.lastError) {
+          index += 1;
+          if (index >= areas.length) {
+            resolve({});
+          } else {
+            tryNext();
+          }
+        } else {
+          resolve(result || {});
+        }
+      });
+    };
+    tryNext();
+  });
+}
+
+function storageSet(values) {
+  const areas = getStorageAreas();
+  if (!areas.length) return Promise.resolve();
+  let index = 0;
+  let lastError = null;
+  return new Promise((resolve, reject) => {
+    const tryNext = () => {
+      if (index >= areas.length) {
+        if (lastError) reject(lastError);
+        else resolve();
+        return;
+      }
+      const area = areas[index];
+      area.set(values, () => {
+        if (chrome.runtime.lastError) {
+          lastError = new Error(chrome.runtime.lastError.message);
+          index += 1;
+          tryNext();
+        } else {
+          resolve();
+        }
+      });
+    };
+    tryNext();
+  });
+}
+
+function initializeSettings() {
+  storageGet({
+    [STORAGE_KEYS.CONFIG]: null,
+    [STORAGE_KEYS.AUTO_OPEN]: true,
+    [STORAGE_KEYS.REPO_EDITORS]: {},
+    cloneRoot: undefined,
+    groupByOwner: undefined,
+    defaultEditor: undefined,
+    openMode: undefined,
+    root: undefined,
+  }).then((data) => {
+    let config = data[STORAGE_KEYS.CONFIG];
+    if (!config) {
+      config = migrateLegacyConfig(data);
+      storageSet({ [STORAGE_KEYS.CONFIG]: config }).catch((err) => console.warn("[bg] failed to persist migrated config", err?.message || err));
+    }
+
+    applyConfig(config);
+
+    autoOpenEnabled = data[STORAGE_KEYS.AUTO_OPEN] !== false;
+    repoEditorMap = isPlainObject(data[STORAGE_KEYS.REPO_EDITORS]) ? data[STORAGE_KEYS.REPO_EDITORS] : {};
+
+    configReadyResolve();
+  });
+}
+
+function migrateLegacyConfig(data) {
+  const legacy = {
+    cloneRoot: data.cloneRoot ?? data.root ?? DEFAULT_CONFIG.cloneRoot,
+    defaultRemote: DEFAULT_CONFIG.defaultRemote,
+    groupByOwner: data.groupByOwner === true,
+    openMode: data.openMode === "file" ? "file" : DEFAULT_CONFIG.openMode,
+    defaultEditor: typeof data.defaultEditor === "string" ? data.defaultEditor : DEFAULT_CONFIG.defaultEditor,
+    editors: DEFAULT_EDITORS,
+  };
+  return sanitizeConfig(legacy);
+}
+
+function sanitizeConfig(raw) {
+  const candidate = isPlainObject(raw) ? raw : {};
+  const cloneRoot = normalizePath(typeof candidate.cloneRoot === "string" ? candidate.cloneRoot : DEFAULT_CONFIG.cloneRoot);
+  const defaultRemote = typeof candidate.defaultRemote === "string" && candidate.defaultRemote.trim()
+    ? candidate.defaultRemote.trim()
+    : DEFAULT_CONFIG.defaultRemote;
+  const groupByOwner = candidate.groupByOwner === true;
+  const openMode = candidate.openMode === "file" ? "file" : "repo";
+  const editors = sanitizeEditors(candidate.editors);
+  const defaultEditor = editors.some((ed) => ed.id === candidate.defaultEditor)
+    ? candidate.defaultEditor
+    : (editors[0]?.id || DEFAULT_CONFIG.defaultEditor);
+
+  return {
+    cloneRoot,
+    defaultRemote,
+    groupByOwner,
+    openMode,
+    defaultEditor,
+    editors,
+  };
+}
+
+function sanitizeEditors(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  const seen = new Set();
+  const cleaned = list
+    .map((entry) => sanitizeEditor(entry))
+    .filter((entry) => {
+      if (!entry) return false;
+      if (seen.has(entry.id)) return false;
+      seen.add(entry.id);
+      return true;
+    });
+  if (cleaned.length) return cleaned;
+  return structuredClone(DEFAULT_EDITORS);
+}
+
+function sanitizeEditor(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const id = typeof entry.id === "string" && entry.id.trim() ? entry.id.trim() : null;
+  if (!id) return null;
+  const name = typeof entry.name === "string" && entry.name.trim() ? entry.name.trim() : id;
+  const command = typeof entry.command === "string" && entry.command.trim() ? entry.command.trim() : null;
+  const alternates = Array.isArray(entry.alternates)
+    ? entry.alternates.filter((alt) => typeof alt === "string" && alt.trim()).map((alt) => alt.trim())
+    : [];
+  if (!command && alternates.length === 0) return null;
+
+  const args = {};
+  ["fileWithLine", "file", "fileInRepo", "folder"].forEach((key) => {
+    if (Array.isArray(entry.args?.[key])) {
+      args[key] = entry.args[key].map((part) => String(part));
+    }
+  });
+
+  return {
+    id,
+    name,
+    command,
+    alternates,
+    args,
+  };
+}
+
+function applyConfig(config) {
+  const sanitized = sanitizeConfig(config);
+  currentConfig = sanitized;
+  cloneRootSetting = sanitized.cloneRoot;
+  groupByOwnerSetting = sanitized.groupByOwner;
+  openModeSetting = sanitized.openMode;
+  availableEditors = structuredClone(sanitized.editors);
+  defaultEditorId = sanitized.defaultEditor;
+  console.log("[bg] applied config", {
+    cloneRootSetting,
+    groupByOwnerSetting,
+    openModeSetting,
+    editorCount: availableEditors.length,
+    defaultEditorId,
+  });
+}
+
+function persistConfig() {
+  storageSet({ [STORAGE_KEYS.CONFIG]: currentConfig }).catch((err) => {
+    console.warn("[bg] failed to persist config", err?.message || err);
+  });
+}
+
+function buildHostConfig() {
+  return structuredClone(currentConfig);
+}
+
+function repoKey(owner, repo) {
+  if (!owner || !repo) return null;
+  return `${owner}/${repo}`.toLowerCase();
+}
+
+function isValidEditorId(editorId) {
+  if (!editorId) return false;
+  return availableEditors.some((editor) => editor.id === editorId);
+}
+
+function getEffectiveDefaultEditor() {
+  if (defaultEditorId && isValidEditorId(defaultEditorId)) return defaultEditorId;
+  return availableEditors[0]?.id || null;
+}
+
+function getEditorForRepo(owner, repo) {
+  const key = repoKey(owner, repo);
+  if (!key) return getEffectiveDefaultEditor();
+  const preferred = repoEditorMap[key];
+  if (preferred && isValidEditorId(preferred)) return preferred;
+  return getEffectiveDefaultEditor();
+}
+
+function setRepoEditorPreference(owner, repo, editorId) {
+  const key = repoKey(owner, repo);
+  if (!key) return;
+  if (!isValidEditorId(editorId)) return;
+  if (repoEditorMap[key] === editorId) return;
+  repoEditorMap = { ...repoEditorMap, [key]: editorId };
+  storageSet({ [STORAGE_KEYS.REPO_EDITORS]: repoEditorMap }).catch((err) => {
+    console.warn("[bg] failed to persist repo editor preference", err?.message || err);
+  });
+}
+
+chrome.storage?.onChanged?.addListener((changes, areaName) => {
+  if (areaName !== "sync" && areaName !== "local") return;
+  if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.CONFIG)) {
+    applyConfig(changes[STORAGE_KEYS.CONFIG].newValue);
+  }
+  if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.AUTO_OPEN)) {
+    autoOpenEnabled = changes[STORAGE_KEYS.AUTO_OPEN].newValue !== false;
+  }
+  if (Object.prototype.hasOwnProperty.call(changes, STORAGE_KEYS.REPO_EDITORS)) {
+    const { newValue } = changes[STORAGE_KEYS.REPO_EDITORS];
+    repoEditorMap = isPlainObject(newValue) ? newValue : {};
+  }
+});
 
 chrome.notifications?.onButtonClicked.addListener((notificationId, buttonIndex) => {
   const entry = pendingPrompts.get(notificationId);
@@ -25,43 +356,115 @@ chrome.notifications?.onClosed.addListener((notificationId) => {
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log("GitHub → VS Code Interceptor installed.");
+  storageGet({ [STORAGE_KEYS.CONFIG]: null }).then((data) => {
+    if (!data[STORAGE_KEYS.CONFIG]) {
+      storageSet({ [STORAGE_KEYS.CONFIG]: DEFAULT_CONFIG }).catch(() => {});
+    }
+  });
 });
 
-// Option 1: Intercept top-level navigations (omnibox, new tab loads)
 chrome.webNavigation?.onBeforeNavigate?.addListener(async (details) => {
-  console.log("[bg] onBeforeNavigate", { tabId: details.tabId, frameId: details.frameId, url: details.url });
-  if (details.frameId !== 0) {
-    console.log("[bg] skip navigation: not top frame");
-    return;
+  if (details.frameId !== 0) return;
+  const result = await maybeIntercept(details.url, details.tabId);
+  if (result?.handled) {
+    console.log("[bg] navigation handled", result);
   }
-
-  const url = details.url;
-  if (!url?.startsWith("https://github.com/")) {
-    console.log("[bg] skip navigation: not a GitHub URL");
-    return;
-  }
-
-  await maybeIntercept(url, details.tabId);
 });
 
-// Option 2: Content script catches in-page clicks; we receive messages here
-chrome.runtime.onMessage.addListener((msg, sender) => {
-  console.log("[bg] onMessage", { type: msg?.type, url: msg?.url, tabId: sender.tab?.id });
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === "GITHUB_LINK_CLICK") {
-    maybeIntercept(msg.url, sender.tab?.id);
+    maybeIntercept(msg.url, sender.tab?.id).then((result) => sendResponse?.(result));
+    return true;
   }
-  return true;
+
+  if (msg?.type === "POPUP_OPEN_URL") {
+    maybeIntercept(msg.url, msg.tabId, {
+      force: true,
+      editorId: msg.editorId,
+      setRepoEditor: msg.setRepoEditor === true,
+      openMode: msg.openMode,
+    }).then((result) => sendResponse?.(result));
+    return true;
+  }
+
+  if (msg?.type === "CONTENT_OPEN_URL") {
+    maybeIntercept(msg.url, sender.tab?.id, {
+      force: true,
+      editorId: msg.editorId,
+      setRepoEditor: msg.setRepoEditor === true,
+      openMode: msg.openMode,
+    }).then((result) => sendResponse?.(result));
+    return true;
+  }
+
+  if (msg?.type === "GET_EDITOR_OPTIONS") {
+    configReadyPromise
+      .then(() => {
+        let gh = {};
+        try {
+          gh = parseGitHubUrl(msg.url || "");
+        } catch (err) {
+          console.warn("[bg] failed to parse URL for editor options", err);
+        }
+        const editorId = gh.owner && gh.repo ? getEditorForRepo(gh.owner, gh.repo) : getEffectiveDefaultEditor();
+        sendResponse?.({
+          editors: availableEditors,
+          defaultEditorId: getEffectiveDefaultEditor(),
+          selectedEditorId: editorId,
+          repoKey: gh.owner && gh.repo ? repoKey(gh.owner, gh.repo) : null,
+          openMode: openModeSetting,
+        });
+      })
+      .catch((err) => {
+        console.error("[bg] failed to provide editor options", err);
+        sendResponse?.({ error: err?.message || String(err) });
+      });
+    return true;
+  }
+
+  if (msg?.type === "SET_OPEN_MODE") {
+    const mode = msg.openMode === "file" ? "file" : "repo";
+    if (mode !== openModeSetting) {
+      openModeSetting = mode;
+      currentConfig.openMode = mode;
+      persistConfig();
+    }
+    sendResponse?.({ status: "OK", openMode: mode });
+    return true;
+  }
+
+  return false;
 });
 
-async function maybeIntercept(url, tabId) {
-  console.log("[bg] maybeIntercept", { url, tabId });
+async function maybeIntercept(url, tabId, { force = false, editorId: overrideEditorId, setRepoEditor = false, openMode: overrideOpenMode } = {}) {
+  if (!url?.startsWith("https://github.com/")) return { handled: false, reason: "notGithub" };
+  if (!force && !autoOpenEnabled) return { handled: false, reason: "autoOpenDisabled" };
+
+  if (!force) {
+    const dedupeKey = `${tabId ?? "no-tab"}::${url}`;
+    const now = Date.now();
+    const last = recentIntercepts.get(dedupeKey);
+    if (last && now - last < 1000) return { handled: false, reason: "duplicate" };
+    recentIntercepts.set(dedupeKey, now);
+    setTimeout(() => {
+      if (recentIntercepts.get(dedupeKey) === now) recentIntercepts.delete(dedupeKey);
+    }, 2000);
+  }
+
+  await configReadyPromise;
+
   try {
     const gh = parseGitHubUrl(url);
-    console.log("[bg] parsed GitHub URL", gh);
-    if (!gh.owner || !gh.repo) {
-      console.log("[bg] abort: owner/repo missing");
-      return;
+    if (!gh.owner || !gh.repo) return { handled: false, reason: "missingRepo" };
+
+    let editorId = overrideEditorId && isValidEditorId(overrideEditorId) ? overrideEditorId : getEditorForRepo(gh.owner, gh.repo);
+    if (!editorId) editorId = getEffectiveDefaultEditor();
+    if (setRepoEditor && overrideEditorId && isValidEditorId(overrideEditorId)) {
+      setRepoEditorPreference(gh.owner, gh.repo, overrideEditorId);
+      editorId = overrideEditorId;
     }
+
+    const openMode = overrideOpenMode === "file" || overrideOpenMode === "repo" ? overrideOpenMode : openModeSetting;
 
     const query = {
       action: "resolve",
@@ -72,40 +475,36 @@ async function maybeIntercept(url, tabId) {
       commit: gh.commit,
       filepath: gh.filepath,
       line: gh.line,
+      editorId,
+      openMode,
+      config: buildHostConfig(),
     };
 
-    console.log("[bg] sending native message", query);
     const response = await sendNativeMessage(query);
-    if (!response) {
-      console.log("[bg] no response from native host");
-      return;
-    }
+    if (!response) return { handled: true, status: "NO_RESPONSE", editorId, openMode };
 
-    console.log("[bg] native host response", response);
     switch (response.status) {
       case "OPENED":
-        if (tabId) chrome.tabs.update(tabId, { url: "about:blank" });
-        break;
+        return { handled: true, status: "OPENED", editorId, openMode };
       case "NEEDS_CLONE":
         await confirmAndClone(response, tabId);
-        break;
+        return { handled: true, status: "NEEDS_CLONE", editorId, openMode };
       case "WRONG_BRANCH":
         await warnAndSwitch(response, tabId);
-        break;
+        return { handled: true, status: "WRONG_BRANCH", editorId, openMode };
       case "ERROR":
         notify("GitHub → VS Code: " + response.message);
-        break;
+        return { handled: true, status: "ERROR", message: response.message, editorId, openMode };
       default:
-        console.log("[bg] response status not handled, letting navigation proceed");
-        break;
+        return { handled: true, status: response.status || "UNKNOWN", editorId, openMode };
     }
   } catch (e) {
     console.error("[bg] maybeIntercept error", e);
+    return { handled: true, status: "ERROR", message: e?.message || String(e) };
   }
 }
 
 async function confirmAndClone(info, tabId) {
-  console.log("[bg] confirmAndClone", info);
   const confirmed = await promptUser({
     tabId,
     title: "Clone repository?",
@@ -114,17 +513,16 @@ async function confirmAndClone(info, tabId) {
     cancelText: "Cancel",
   });
   if (!confirmed) return;
-  const res = await sendNativeMessage({ action: "clone", remote: info.remote, localPath: info.localPath });
+  const res = await sendNativeMessage({ action: "clone", remote: info.remote, localPath: info.localPath, config: buildHostConfig() });
   if (res?.status === "CLONED") {
     const openRes = await sendNativeMessage(info.openPayload);
-    if (openRes?.status === "OPENED" && tabId) chrome.tabs.update(tabId, { url: "about:blank" });
+    if (openRes?.status !== "OPENED") notify("GitHub → VS Code: Clone completed but opening failed.");
   } else if (res?.status === "ERROR") {
     notify("Clone failed: " + res.message);
   }
 }
 
 async function warnAndSwitch(info, tabId) {
-  console.log("[bg] warnAndSwitch", info);
   const proceed = await promptUser({
     tabId,
     title: "Switch branches?",
@@ -136,14 +534,13 @@ async function warnAndSwitch(info, tabId) {
   const res = await sendNativeMessage({ action: "switchBranch", localPath: info.localPath, branch: info.expectedBranch });
   if (res?.status === "SWITCHED") {
     const openRes = await sendNativeMessage(info.openPayload);
-    if (openRes?.status === "OPENED" && tabId) chrome.tabs.update(tabId, { url: "about:blank" });
+    if (openRes?.status !== "OPENED") notify("GitHub → VS Code: Branch switched but opening failed.");
   } else if (res?.status === "ERROR") {
     notify("Branch switch failed: " + res.message);
   }
 }
 
 function notify(message) {
-  console.log("[bg] notify", message);
   chrome.notifications?.create({
     type: "basic",
     iconUrl: "icons/icon128.png",
@@ -154,18 +551,11 @@ function notify(message) {
 
 async function promptUser({ tabId, title, message, confirmText, cancelText }) {
   const tabChoice = await promptViaExecuteScript(tabId, { title, message });
-  if (tabChoice !== null) {
-    console.log("[bg] promptUser resolved via executeScript", tabChoice);
-    return tabChoice;
-  }
+  if (tabChoice !== null) return tabChoice;
 
   const contentScriptChoice = await promptViaContentScript(tabId, { title, message });
-  if (contentScriptChoice !== null) {
-    console.log("[bg] promptUser resolved via content script", contentScriptChoice);
-    return contentScriptChoice;
-  }
+  if (contentScriptChoice !== null) return contentScriptChoice;
 
-  console.log("[bg] promptUser falling back to notification");
   return promptViaNotification({ title, message, confirmText, cancelText });
 }
 
@@ -218,10 +608,7 @@ function promptViaContentScript(tabId, { title, message }) {
 }
 
 function promptViaNotification({ title, message, confirmText, cancelText }) {
-  if (!chrome.notifications) {
-    console.warn("[bg] notifications API unavailable; defaulting to cancel");
-    return Promise.resolve(false);
-  }
+  if (!chrome.notifications) return Promise.resolve(false);
 
   const notificationId = `gh-vscode-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const options = {
@@ -235,8 +622,6 @@ function promptViaNotification({ title, message, confirmText, cancelText }) {
       { title: cancelText },
     ],
   };
-
-  console.log("[bg] promptViaNotification", { notificationId, options });
 
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
