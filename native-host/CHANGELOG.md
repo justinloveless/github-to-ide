@@ -9,16 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Auto-detection of extension IDs**: Interactive mode now automatically scans browser profiles
-- Detects GitHub to IDE extension across Chrome, Brave, Edge, and Chromium
+- Detects GitHub to IDE extension across Chrome, Arc, Brave, Edge, and Chromium
 - Smart selection for multiple installed extensions
 - One-click confirmation when single extension detected
 - Fallback to manual entry if auto-detection fails
 - Cross-platform extension scanning (macOS, Linux, Windows)
+- **Arc browser support**: Now installs and detects extensions in Arc
 
 ### Changed
 - Interactive mode now starts with auto-detection instead of manual prompt
 - Help text updated to highlight auto-detection feature
 - Improved user experience with automatic extension discovery
+- Added note about unpacked extensions requiring manual entry
+
+### Known Limitations
+- Auto-detection only works for installed extensions (Chrome Web Store or packed .crx)
+- Unpacked extensions loaded via "Load unpacked" must be entered manually
+- Only scans Default browser profile (not other profiles)
 
 ### Technical Details
 - Added `readdirSync` import from `node:fs`

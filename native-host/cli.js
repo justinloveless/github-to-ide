@@ -76,6 +76,7 @@ function detectExtensions() {
   if (os === 'darwin') {
     extensionDirs = [
       ['Chrome', join(home, 'Library', 'Application Support', 'Google', 'Chrome', 'Default', 'Extensions')],
+      ['Arc', join(home, 'Library', 'Application Support', 'Arc', 'User Data', 'Default', 'Extensions')],
       ['Chrome Beta', join(home, 'Library', 'Application Support', 'Google', 'Chrome Beta', 'Default', 'Extensions')],
       ['Chromium', join(home, 'Library', 'Application Support', 'Chromium', 'Default', 'Extensions')],
       ['Brave', join(home, 'Library', 'Application Support', 'BraveSoftware', 'Brave-Browser', 'Default', 'Extensions')],
@@ -206,6 +207,8 @@ async function promptForExtensionId() {
     }
   } else {
     console.log('ℹ️  No GitHub to IDE extension detected automatically.\n');
+    console.log('💡 Note: Unpacked extensions (loaded via "Load unpacked") cannot be');
+    console.log('   auto-detected. Please enter your extension ID manually.\n');
     return manualExtensionIdPrompt();
   }
 }
@@ -285,6 +288,7 @@ async function install(extensionId) {
       // macOS - try multiple browser locations
       const browsers = [
         ['Chrome', join(home, 'Library', 'Application Support', 'Google', 'Chrome', 'NativeMessagingHosts')],
+        ['Arc', join(home, 'Library', 'Application Support', 'Arc', 'User Data', 'NativeMessagingHosts')],
         ['Chrome Beta', join(home, 'Library', 'Application Support', 'Google', 'Chrome Beta', 'NativeMessagingHosts')],
         ['Chromium', join(home, 'Library', 'Application Support', 'Chromium', 'NativeMessagingHosts')],
         ['Brave', join(home, 'Library', 'Application Support', 'BraveSoftware', 'Brave-Browser', 'NativeMessagingHosts')],
@@ -394,6 +398,7 @@ async function uninstall() {
     if (os === 'darwin') {
       manifestDirs = [
         ['Chrome', join(home, 'Library', 'Application Support', 'Google', 'Chrome', 'NativeMessagingHosts')],
+        ['Arc', join(home, 'Library', 'Application Support', 'Arc', 'User Data', 'NativeMessagingHosts')],
         ['Chrome Beta', join(home, 'Library', 'Application Support', 'Google', 'Chrome Beta', 'NativeMessagingHosts')],
         ['Chromium', join(home, 'Library', 'Application Support', 'Chromium', 'NativeMessagingHosts')],
         ['Brave', join(home, 'Library', 'Application Support', 'BraveSoftware', 'Brave-Browser', 'NativeMessagingHosts')],

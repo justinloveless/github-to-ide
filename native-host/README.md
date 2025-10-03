@@ -34,7 +34,9 @@ npx gh2ide
 - 🎯 **Smart prompts**: Confirms detected extension or lets you choose from multiple
 - 📝 **Manual fallback**: If auto-detection fails, guides you through manual entry
 
-The CLI will automatically find your extension in Chrome, Brave, Edge, or Chromium.
+The CLI will automatically find your extension in Chrome, Arc, Brave, Edge, or Chromium.
+
+**Note:** Auto-detection only works for **installed** extensions (from Chrome Web Store or packed .crx files). Unpacked extensions loaded via "Load unpacked" must be entered manually.
 
 ### Direct Installation
 
