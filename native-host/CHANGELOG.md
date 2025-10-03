@@ -5,22 +5,35 @@ All notable changes to the `github-to-ide-host` npm package will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-10-03
+
+### Added
+- **Arc browser support**: Full support for Arc browser on macOS
+  - Auto-detection scans Arc extension directory
+  - Installation creates manifest in Arc's NativeMessagingHosts
+  - Uninstall removes Arc manifests
+
+### Changed
+- Added helpful note when no extensions detected explaining unpacked extensions limitation
+- Updated documentation to clarify auto-detection only works for installed extensions
+
+### Fixed
+- Arc browser now properly detected and configured on macOS
+
 ## [1.2.0] - 2025-10-03
 
 ### Added
 - **Auto-detection of extension IDs**: Interactive mode now automatically scans browser profiles
-- Detects GitHub to IDE extension across Chrome, Arc, Brave, Edge, and Chromium
+- Detects GitHub to IDE extension across Chrome, Brave, Edge, and Chromium
 - Smart selection for multiple installed extensions
 - One-click confirmation when single extension detected
 - Fallback to manual entry if auto-detection fails
 - Cross-platform extension scanning (macOS, Linux, Windows)
-- **Arc browser support**: Now installs and detects extensions in Arc
 
 ### Changed
 - Interactive mode now starts with auto-detection instead of manual prompt
 - Help text updated to highlight auto-detection feature
 - Improved user experience with automatic extension discovery
-- Added note about unpacked extensions requiring manual entry
 
 ### Known Limitations
 - Auto-detection only works for installed extensions (Chrome Web Store or packed .crx)
@@ -75,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clear error messages and troubleshooting guidance
 - Professional npm package distribution
 
+[1.2.1]: https://github.com/justinloveless/github-to-ide/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/justinloveless/github-to-ide/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/justinloveless/github-to-ide/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/justinloveless/github-to-ide/releases/tag/v1.0.0

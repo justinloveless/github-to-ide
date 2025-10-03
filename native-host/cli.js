@@ -8,7 +8,7 @@ import { createInterface } from 'node:readline';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const VERSION = '1.2.0';
+const VERSION = '1.2.1';
 
 function showHelp() {
   console.log(`
