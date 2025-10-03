@@ -84,9 +84,12 @@ Removes all installed files and manifests from all browsers.
 
 ## Features
 
-### 🎯 Interactive Mode
-- Prompts user for extension ID
-- Shows clear instructions on finding the ID
+### 🎯 Interactive Mode with Auto-Detection
+- **Automatically scans** browser profiles for GitHub to IDE extension
+- **Detects across browsers**: Chrome, Brave, Edge, Chromium
+- **Smart selection**: Confirms single extension or lets you choose from multiple
+- **Manual fallback**: If auto-detection fails, guides you through manual entry
+- Shows extension name, version, and browser
 - Validates input format
 - Friendly error messages
 
@@ -289,12 +292,13 @@ See `native-host/PUBLISHING.md` for complete details.
 
 Possible improvements for future versions:
 
-1. **Auto-detect extension ID** - Read from browser profile
+1. ~~**Auto-detect extension ID**~~ - ✅ **IMPLEMENTED** - Automatically scans browser profiles
 2. **Update checker** - Notify when new version available
 3. ~~**Uninstall command**~~ - ✅ **IMPLEMENTED** - `npx gh2ide --uninstall`
 4. **Config wizard** - Interactive setup for IDE preferences
-5. **Multiple extension support** - Install for multiple extensions
+5. **Multiple extension support** - Install for multiple extensions at once
 6. **Logging** - Better troubleshooting with log files
+7. **Multiple browser profiles** - Detect extensions in non-default profiles
 
 ## Support
 

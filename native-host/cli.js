@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { writeFileSync, mkdirSync, chmodSync, readFileSync, cpSync, rmSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, chmodSync, readFileSync, cpSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
 import { createInterface } from 'node:readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 
 function showHelp() {
   console.log(`
@@ -24,11 +24,11 @@ OPTIONS:
   --version, -v          Show version number
 
 EXAMPLES:
-  # Install with extension ID
-  npx gh2ide --extension-id abc123xyz
-
-  # Interactive mode (prompts for extension ID)
+  # Interactive mode (auto-detects extension, recommended)
   npx gh2ide
+
+  # Install with specific extension ID
+  npx gh2ide --extension-id abc123xyz
 
   # Uninstall the native host
   npx gh2ide --uninstall
@@ -36,7 +36,11 @@ EXAMPLES:
   # Show help
   npx gh2ide --help
 
-FINDING YOUR EXTENSION ID:
+AUTO-DETECTION:
+  Running without --extension-id will scan your browser profiles
+  and automatically detect the GitHub to IDE extension.
+
+FINDING YOUR EXTENSION ID MANUALLY:
   1. Open Chrome and navigate to: chrome://extensions
   2. Enable "Developer mode" (toggle in top-right)
   3. Find "GitHub to IDE" extension
@@ -62,14 +66,157 @@ function showVersion() {
   console.log(`gh2ide v${VERSION}`);
 }
 
+function detectExtensions() {
+  const home = homedir();
+  const os = platform();
+  const extensions = [];
+  
+  let extensionDirs = [];
+  
+  if (os === 'darwin') {
+    extensionDirs = [
+      ['Chrome', join(home, 'Library', 'Application Support', 'Google', 'Chrome', 'Default', 'Extensions')],
+      ['Chrome Beta', join(home, 'Library', 'Application Support', 'Google', 'Chrome Beta', 'Default', 'Extensions')],
+      ['Chromium', join(home, 'Library', 'Application Support', 'Chromium', 'Default', 'Extensions')],
+      ['Brave', join(home, 'Library', 'Application Support', 'BraveSoftware', 'Brave-Browser', 'Default', 'Extensions')],
+      ['Edge', join(home, 'Library', 'Application Support', 'Microsoft Edge', 'Default', 'Extensions')],
+    ];
+  } else if (os === 'linux') {
+    extensionDirs = [
+      ['Chrome', join(home, '.config', 'google-chrome', 'Default', 'Extensions')],
+      ['Chromium', join(home, '.config', 'chromium', 'Default', 'Extensions')],
+      ['Brave', join(home, '.config', 'BraveSoftware', 'Brave-Browser', 'Default', 'Extensions')],
+    ];
+  } else if (os === 'win32') {
+    const appData = process.env.LOCALAPPDATA || join(home, 'AppData', 'Local');
+    extensionDirs = [
+      ['Chrome', join(appData, 'Google', 'Chrome', 'User Data', 'Default', 'Extensions')],
+      ['Edge', join(appData, 'Microsoft', 'Edge', 'User Data', 'Default', 'Extensions')],
+      ['Brave', join(appData, 'BraveSoftware', 'Brave-Browser', 'User Data', 'Default', 'Extensions')],
+    ];
+  }
+  
+  for (const [browserName, dir] of extensionDirs) {
+    if (!existsSync(dir)) continue;
+    
+    try {
+      const extensionIds = readdirSync(dir);
+      
+      for (const extensionId of extensionIds) {
+        // Chrome extension IDs are 32 characters, lowercase letters a-p
+        if (/^[a-p]{32}$/.test(extensionId)) {
+          const extensionPath = join(dir, extensionId);
+          
+          // Try to find manifest.json in version subdirectories
+          try {
+            const versions = readdirSync(extensionPath);
+            for (const version of versions) {
+              const manifestPath = join(extensionPath, version, 'manifest.json');
+              
+              if (existsSync(manifestPath)) {
+                try {
+                  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+                  const name = manifest.name || 'Unknown Extension';
+                  
+                  // Check if it's the GitHub to IDE extension
+                  if (name.toLowerCase().includes('github') && (
+                      name.toLowerCase().includes('ide') || 
+                      name.toLowerCase().includes('vscode') ||
+                      name.toLowerCase().includes('editor')
+                  )) {
+                    extensions.push({
+                      id: extensionId,
+                      name: name,
+                      browser: browserName,
+                      version: manifest.version || 'unknown'
+                    });
+                    break; // Found it, no need to check other versions
+                  }
+                } catch (err) {
+                  // Couldn't read/parse manifest, skip
+                }
+              }
+            }
+          } catch (err) {
+            // Couldn't read extension directory, skip
+          }
+        }
+      }
+    } catch (err) {
+      // Couldn't read extensions directory, skip this browser
+    }
+  }
+  
+  return extensions;
+}
+
 async function promptForExtensionId() {
+  console.log('\n📋 GitHub to IDE - Native Host Installation\n');
+  
+  // Try to auto-detect extensions
+  console.log('🔍 Scanning for GitHub to IDE extension...\n');
+  const detectedExtensions = detectExtensions();
+  
+  if (detectedExtensions.length > 0) {
+    console.log('✅ Found GitHub to IDE extension(s):\n');
+    
+    detectedExtensions.forEach((ext, index) => {
+      console.log(`  ${index + 1}. ${ext.name} (v${ext.version})`);
+      console.log(`     Browser: ${ext.browser}`);
+      console.log(`     ID: ${ext.id}\n`);
+    });
+    
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    if (detectedExtensions.length === 1) {
+      // Only one extension found, ask if they want to use it
+      return new Promise((resolve) => {
+        rl.question(`Use this extension? (Y/n): `, (answer) => {
+          rl.close();
+          const normalized = answer.trim().toLowerCase();
+          if (normalized === '' || normalized === 'y' || normalized === 'yes') {
+            resolve(detectedExtensions[0].id);
+          } else {
+            console.log('\n');
+            resolve(manualExtensionIdPrompt());
+          }
+        });
+      });
+    } else {
+      // Multiple extensions found, let user choose
+      return new Promise((resolve) => {
+        rl.question(`Select extension (1-${detectedExtensions.length}), or press Enter to enter manually: `, (answer) => {
+          rl.close();
+          const choice = parseInt(answer.trim());
+          
+          if (choice >= 1 && choice <= detectedExtensions.length) {
+            resolve(detectedExtensions[choice - 1].id);
+          } else if (answer.trim() === '') {
+            console.log('\n');
+            resolve(manualExtensionIdPrompt());
+          } else {
+            console.log('\n❌ Invalid selection.\n');
+            resolve(manualExtensionIdPrompt());
+          }
+        });
+      });
+    }
+  } else {
+    console.log('ℹ️  No GitHub to IDE extension detected automatically.\n');
+    return manualExtensionIdPrompt();
+  }
+}
+
+async function manualExtensionIdPrompt() {
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout
   });
-
-  console.log('\n📋 GitHub to IDE - Native Host Installation\n');
-  console.log('To find your extension ID:');
+  
+  console.log('To find your extension ID manually:');
   console.log('  1. Open chrome://extensions in your browser');
   console.log('  2. Enable "Developer mode" (toggle in top-right corner)');
   console.log('  3. Find the "GitHub to IDE" extension');

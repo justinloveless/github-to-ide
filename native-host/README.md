@@ -23,13 +23,18 @@ npx gh2ide --extension-id <your-extension-id>
 
 ### Interactive Mode (Recommended)
 
-Simply run without arguments and follow the prompts:
+Simply run without arguments and the CLI will auto-detect your extension:
 
 ```bash
 npx gh2ide
 ```
 
-The CLI will guide you through finding and entering your extension ID.
+**Features:**
+- 🔍 **Auto-detection**: Scans your browser profiles for GitHub to IDE extension
+- 🎯 **Smart prompts**: Confirms detected extension or lets you choose from multiple
+- 📝 **Manual fallback**: If auto-detection fails, guides you through manual entry
+
+The CLI will automatically find your extension in Chrome, Brave, Edge, or Chromium.
 
 ### Direct Installation
 
