@@ -133,7 +133,6 @@ const defaultEditorSelect = document.getElementById("default-editor");
 const editorsTextarea = document.getElementById("editors-json");
 const saveBtn = document.getElementById("save");
 const resetBtn = document.getElementById("reset");
-const openBtn = document.getElementById("open-current");
 const testConnectionBtn = document.getElementById("test-connection");
 const connectionStatusEl = document.getElementById("connection-status");
 const repoListContainer = document.getElementById("repo-editor-list");
@@ -287,43 +286,6 @@ chooseBtn.addEventListener("click", async () => {
     setStatus(err?.message || String(err), "error");
   } finally {
     chooseBtn.disabled = false;
-  }
-});
-
-openBtn.addEventListener("click", async () => {
-  openBtn.disabled = true;
-  setStatus("Opening…");
-  try {
-    const tab = await getActiveTab();
-    if (!tab?.url) {
-      setStatus("No active tab detected.", "error");
-      return;
-    }
-    const result = await chrome.runtime.sendMessage({
-      type: "POPUP_OPEN_URL",
-      url: tab.url,
-      tabId: tab.id,
-    });
-
-    if (result?.handled === false && result?.reason === "notGithub") {
-      setStatus("Current tab is not a GitHub URL.", "error");
-    } else if (result?.status === "OPENED") {
-      setStatus("Opened.");
-    } else if (result?.status === "NEEDS_CLONE") {
-      setStatus("Clone prompt sent – confirm it in the browser.");
-    } else if (result?.status === "WRONG_BRANCH") {
-      setStatus("Branch switch prompt sent – confirm to proceed.");
-    } else if (result?.status === "ERROR") {
-      setStatus(result?.message ? `Error: ${result.message}` : "Failed to open.", "error");
-    } else if (result?.status) {
-      setStatus(`Action completed with status: ${result.status}.`);
-    } else {
-      setStatus("No action taken.");
-    }
-  } catch (err) {
-    setStatus(err?.message || String(err), "error");
-  } finally {
-    openBtn.disabled = false;
   }
 });
 
@@ -560,7 +522,7 @@ function isPlainObject(value) {
 function updateNativeHostCommand() {
   if (!nativeHostCommandEl) return;
   const extensionId = chrome.runtime?.id || "<extension-id>";
-  const command = `curl -fsSL https://raw.githubusercontent.com/justinloveless/github-to-ide/refs/heads/main/scripts/install-native-host-standalone.sh | bash -s -- --extension-id ${extensionId}`;
+  const command = `npx gh2idehost --extension-id ${extensionId}`;
   nativeHostCommandEl.textContent = command;
 }
 
