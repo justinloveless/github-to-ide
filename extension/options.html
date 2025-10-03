@@ -275,17 +275,24 @@
       }
       
       pre {
-        background: #f6f8fa;
+        background: #ffffff;
         border: 1px solid #d0d7de;
         border-radius: 6px;
-        padding: 12px;
+        padding: 10px 12px;
         white-space: pre-wrap;
         word-break: break-all;
         margin-top: 6px;
         font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
         font-size: 13px;
         line-height: 1.5;
-        color: #1f2328;
+        color: #24292f;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.3s ease, color 0.3s ease;
+      }
+      
+      pre:focus-within {
+        outline: none;
+        border-color: #0969da;
+        box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
       }
       
       code {
@@ -430,10 +437,16 @@
         color: #e6edf3;
       }
       
+      html.dark-mode pre:focus-within,
+      body.dark-mode pre:focus-within {
+        border-color: #1f6feb;
+        box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.15);
+      }
+      
       html.dark-mode code,
       body.dark-mode code {
-        background: #0d1117;
-        color: #e6edf3;
+        background: #161b22;
+        color: #c9d1d9;
       }
     </style>
   </head>
@@ -497,7 +510,7 @@
       <div id="connection-status" class="hint" style="margin-top:8px;padding:8px;border-radius:4px;"></div>
       <div style="margin-top:12px;">
         <label>Native host install command</label>
-        <pre id="native-host-command" style="background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:8px;white-space:pre-wrap;word-break:break-all;margin-top:4px;"></pre>
+        <pre id="native-host-command"></pre>
         <div class="actions" style="margin-top:6px;">
           <button id="copy-native-host-command" type="button">Copy command</button>
         </div>
