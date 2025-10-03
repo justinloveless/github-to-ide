@@ -1,10 +1,40 @@
 {
-    "name": "github-vscode-native-host",
-    "version": "0.1.0",
-    "private": true,
-    "type": "module",
-    "bin": {
-      "github-vscode-native-host": "index.js"
-    },
-    "dependencies": {}
-  }
+  "name": "github-to-ide-host",
+  "version": "1.0.0",
+  "description": "Native messaging host for GitHub to IDE Chrome extension - opens GitHub repos and files directly in your IDE",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "gh2ide": "./cli.js"
+  },
+  "keywords": [
+    "github",
+    "chrome-extension",
+    "native-messaging",
+    "vscode",
+    "cursor",
+    "ide",
+    "jetbrains",
+    "rider",
+    "developer-tools"
+  ],
+  "author": "Justin Loveless",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justinloveless/github-to-ide.git"
+  },
+  "bugs": {
+    "url": "https://github.com/justinloveless/github-to-ide/issues"
+  },
+  "homepage": "https://github.com/justinloveless/github-to-ide#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "files": [
+    "index.js",
+    "run.sh",
+    "cli.js",
+    "README.md"
+  ]
+}

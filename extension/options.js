@@ -522,7 +522,7 @@ function isPlainObject(value) {
 function updateNativeHostCommand() {
   if (!nativeHostCommandEl) return;
   const extensionId = chrome.runtime?.id || "<extension-id>";
-  const command = `npx gh2idehost --extension-id ${extensionId}`;
+  const command = `npx gh2ide --extension-id ${extensionId}`;
   nativeHostCommandEl.textContent = command;
 }
 
