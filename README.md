@@ -17,25 +17,30 @@ GitHub to IDE intercepts GitHub links and sends them straight to the IDE of your
    *Optional:* run `./scripts/package-extension.sh` to produce a ZIP in `dist/` that you can share with teammates. They must still extract that ZIP and choose the extracted folder with **Load unpacked**—Chrome will not load the ZIP directly.
 
 3. **Install the native host**
-   - **Option A (know your extension ID):**
+   
+   The native host is available as an npm package for easy installation:
+   
+   - **Option A - Interactive (Recommended):**
+     ```bash
+     npx gh2ide
+     ```
+     The CLI will guide you through finding your extension ID.
+   
+   - **Option B - Direct install:**
      1. From `chrome://extensions`, copy the extension ID.
      2. Run:
         ```bash
-        curl -fsSL https://raw.githubusercontent.com/justinloveless/github-to-ide/refs/heads/main/scripts/install-native-host-standalone.sh | \
-          bash -s -- --extension-id <extension-id>
+        npx gh2ide --extension-id <your-extension-id>
         ```
-   - **Option B (no typing required):**
+   
+   - **Option C - Copy from extension:**
      1. Open the extension options page.
-     2. At the bottom you’ll see a ready-to-copy command populated with *your* extension ID.
-        <p align="center">
-          <img src="assets/img1.png" width="420" alt="Options page showing native host command"/>
-        </p>
-     3. Click **Copy command** (or copy manually) and paste into your terminal.
-        <p align="center">
-          <img src="assets/img2.png" width="420" alt="Paste command into terminal"/>
-        </p>
-
-   The script downloads the native helper to `~/.github-to-ide/native-host` and writes the manifest for Chrome/Arc/Brave/Chromium/Vivaldi.
+     2. At the bottom you'll see a ready-to-copy command with *your* extension ID.
+     3. Click **Copy command** and paste into your terminal.
+   
+   The installer sets up the native host in `~/.github-to-ide/native-host` and configures Chrome/Brave/Edge/Chromium automatically.
+   
+   **Requirements:** Node.js 16 or higher. [View on npm →](https://www.npmjs.com/package/github-to-ide-host)
 
 4. **Configure**
    - Open the extension options page (`chrome://extensions` → Details → Extension options).
@@ -43,11 +48,26 @@ GitHub to IDE intercepts GitHub links and sends them straight to the IDE of your
 
 > Tip: the popup menu also has a direct link to the options page.
 
+## Native Host
+
+The native messaging host is published as an npm package: [`github-to-ide-host`](https://www.npmjs.com/package/github-to-ide-host)
+
+**Installation:**
+```bash
+npx gh2ide --extension-id <your-extension-id>
+```
+
+Or use interactive mode:
+```bash
+npx gh2ide
+```
+
+For more details, see the [native host documentation](native-host/README.md).
+
 ## Scripts
 
 - `scripts/package-extension.sh` – packages the extension into `dist/github-to-ide-<timestamp>.zip` for easy sharing.
-- `scripts/install-native-host.sh` – installs the native host from a local checkout (if you already cloned the repo).
-- `scripts/install-native-host-standalone.sh` – downloads the latest host files from GitHub and writes the native messaging manifest (used by the curl one-liner above).
+- `scripts/install-native-host.sh` – installs the native host from a local checkout (useful for development).
 
 ## Editors
 
@@ -62,6 +82,17 @@ GitHub to IDE intercepts GitHub links and sends them straight to the IDE of your
 
 ## Notes
 
-- Restart the browser after installing the native host so the manifest reloads.
-- The project doesn’t bundle Node dependencies; only a recent Node runtime is required for the native helper.
+- **Restart your browser** after installing the native host so the manifest loads.
+- Requires **Node.js 16+** for the native messaging host.
 - GitHub to IDE is not (yet) published in the Chrome Web Store; installation is manual via Developer Mode.
+
+## Troubleshooting
+
+**"No response from native host"**
+1. Ensure you've restarted your browser after installation
+2. Verify the extension ID matches: run `npx gh2ide --extension-id <your-id>` again
+3. Check Node.js is installed: `node --version` (requires v16+)
+
+**Native host installation**
+- For detailed installation help, run: `npx gh2ide --help`
+- View troubleshooting guide: [native-host/README.md](native-host/README.md#troubleshooting)

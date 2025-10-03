@@ -122,12 +122,17 @@ The extension uses a local native helper to communicate with your IDE, ensuring 
 
 📋 SETUP REQUIRED
 
-After installing the extension, you'll need to install a small native helper that communicates with your IDE. The extension provides:
-• A simple one-click command to copy and paste into your terminal
-• A "Test Connection" button to verify everything is working
+After installing the extension, you'll need to install a small native helper that communicates with your IDE. Installation is simple:
+
+Run this command in your terminal:
+  npx gh2ide
+
+Or get your personalized command from the extension options page. The extension provides:
+• Interactive CLI that guides you through setup
+• "Test Connection" button to verify everything is working
 • Clear status indicators showing when setup is complete
 
-Full setup instructions are available on the options page.
+Requires Node.js 16+. Full setup instructions are available on the options page.
 
 🔒 PRIVACY & SECURITY
 

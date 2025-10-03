@@ -384,7 +384,7 @@ function showFirstRunNotification() {
     type: "basic",
     iconUrl: "icons/icon128.png",
     title: "GitHub to IDE - Setup Required",
-    message: "Welcome! Please open the extension options to complete setup. You'll need to install a native helper to connect to your IDE.",
+    message: "Welcome! Run 'npx gh2ide' in your terminal to install the native host, then configure your IDE in the options page.",
     priority: 2,
     buttons: [
       { title: "Open Options" },
