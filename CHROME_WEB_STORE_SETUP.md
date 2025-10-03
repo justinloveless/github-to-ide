@@ -122,17 +122,19 @@ The extension uses a local native helper to communicate with your IDE, ensuring 
 
 📋 SETUP REQUIRED
 
-After installing the extension, you'll need to install a small native helper that communicates with your IDE. Installation is simple:
+After installing the extension, you'll need to install a small native helper that communicates with your IDE. Installation is incredibly simple:
 
-Run this command in your terminal:
+Just run this command in your terminal:
   npx gh2ide
 
-Or get your personalized command from the extension options page. The extension provides:
-• Interactive CLI that guides you through setup
+The CLI will automatically detect your extension and guide you through setup! Features:
+• Auto-detects the extension (no need to find your extension ID)
+• Interactive prompts guide you step-by-step
+• Installs for Chrome, Arc, Brave, Edge, and Chromium automatically
 • "Test Connection" button to verify everything is working
 • Clear status indicators showing when setup is complete
 
-Requires Node.js 16+. Full setup instructions are available on the options page.
+Requires Node.js 16+. Full setup instructions are available on the options page or at npmjs.com/package/github-to-ide-host
 
 🔒 PRIVACY & SECURITY
 
@@ -158,6 +160,17 @@ Developer Tools
 ```
 English (United States)
 ```
+
+### Supported Browsers
+The native host installer supports:
+- Google Chrome
+- Arc Browser
+- Brave Browser
+- Microsoft Edge
+- Chromium
+- Any Chromium-based browser
+
+The extension itself works in any Chromium-based browser that supports Chrome extensions.
 
 ## Screenshots to Include
 
@@ -200,23 +213,49 @@ English (United States)
 
 ## Publishing Checklist
 
+### Extension Store Listing
 - [ ] All privacy practice justifications filled out
 - [ ] Data usage certified
 - [ ] Contact email added and verified
-- [ ] Store listing description written
+- [ ] Store listing description written (mentions auto-detection)
 - [ ] Screenshots uploaded (minimum 1, recommended 5)
 - [ ] Category set to "Developer Tools"
 - [ ] Version number matches manifest.json
 - [ ] Extension tested in production mode (not just unpacked)
-- [ ] Native host install script tested on clean machine
 - [ ] All features work as described in listing
+
+### Native Host (npm package)
+- [ ] npm package published as `github-to-ide-host`
+- [ ] Package version is up to date (currently v1.2.1)
+- [ ] Auto-detection tested with published extension
+- [ ] Installation tested via `npx gh2ide`
+- [ ] Works on Chrome, Arc, Brave, Edge, Chromium
+- [ ] Connection test passes from extension options
+- [ ] Uninstall command works: `npx gh2ide --uninstall`
+
+### Integration Testing
+- [ ] Install extension from .crx or Web Store
+- [ ] Run `npx gh2ide` - extension is auto-detected
+- [ ] Native host connects successfully
+- [ ] Files open correctly in configured editors
+- [ ] Multi-browser support verified
 
 ## After Approval
 
+### Extension
 1. Update README.md with Chrome Web Store installation link
 2. Add Chrome Web Store badge to repository
 3. Update installation instructions to reference Web Store listing
-4. Consider adding a changelog for future updates
+
+### npm Package
+4. Test that `npx gh2ide` auto-detects the published extension
+5. Update npm package README if any improvements needed
+6. Ensure npm package version stays in sync with extension capabilities
+
+### Promotion
+7. Share on social media / developer communities
+8. Consider Product Hunt launch
+9. Write blog post or dev.to article
 
 ## Notes
 
