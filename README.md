@@ -95,4 +95,5 @@ For more details, see the [native host documentation](native-host/README.md).
 
 **Native host installation**
 - For detailed installation help, run: `npx gh2ide --help`
+- To uninstall: `npx gh2ide --uninstall`
 - View troubleshooting guide: [native-host/README.md](native-host/README.md#troubleshooting)

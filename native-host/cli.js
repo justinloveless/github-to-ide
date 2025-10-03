@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { writeFileSync, mkdirSync, chmodSync, readFileSync, cpSync } from 'node:fs';
+import { writeFileSync, mkdirSync, chmodSync, readFileSync, cpSync, rmSync, existsSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
 import { createInterface } from 'node:readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 
 function showHelp() {
   console.log(`
@@ -18,7 +18,8 @@ USAGE:
   npx gh2ide [OPTIONS]
 
 OPTIONS:
-  --extension-id <id>    Chrome extension ID (required)
+  --extension-id <id>    Chrome extension ID (required for install)
+  --uninstall            Remove the native host
   --help, -h             Show this help message
   --version, -v          Show version number
 
@@ -28,6 +29,9 @@ EXAMPLES:
 
   # Interactive mode (prompts for extension ID)
   npx gh2ide
+
+  # Uninstall the native host
+  npx gh2ide --uninstall
 
   # Show help
   npx gh2ide --help
@@ -213,6 +217,93 @@ async function install(extensionId) {
   }
 }
 
+async function uninstall() {
+  console.log('\n🗑️  Uninstalling GitHub to IDE native host...\n');
+  
+  const home = homedir();
+  const installDir = join(home, '.github-to-ide');
+  const manifestName = 'com.lovelesslabs.vscodeopener.json';
+  
+  let filesRemoved = 0;
+  let errors = [];
+  
+  try {
+    // Remove installation directory
+    if (existsSync(installDir)) {
+      console.log('📁 Removing installation directory...');
+      rmSync(installDir, { recursive: true, force: true });
+      console.log(`   ✓ Removed ${installDir}`);
+      filesRemoved++;
+    } else {
+      console.log('   ℹ️  Installation directory not found (already removed)');
+    }
+    
+    // Remove manifests from all browsers
+    console.log('📝 Removing native messaging manifests...');
+    
+    const os = platform();
+    let manifestDirs = [];
+    
+    if (os === 'darwin') {
+      manifestDirs = [
+        ['Chrome', join(home, 'Library', 'Application Support', 'Google', 'Chrome', 'NativeMessagingHosts')],
+        ['Chrome Beta', join(home, 'Library', 'Application Support', 'Google', 'Chrome Beta', 'NativeMessagingHosts')],
+        ['Chromium', join(home, 'Library', 'Application Support', 'Chromium', 'NativeMessagingHosts')],
+        ['Brave', join(home, 'Library', 'Application Support', 'BraveSoftware', 'Brave-Browser', 'NativeMessagingHosts')],
+        ['Edge', join(home, 'Library', 'Application Support', 'Microsoft Edge', 'NativeMessagingHosts')]
+      ];
+    } else if (os === 'linux') {
+      manifestDirs = [
+        ['Chrome', join(home, '.config', 'google-chrome', 'NativeMessagingHosts')],
+        ['Chromium', join(home, '.config', 'chromium', 'NativeMessagingHosts')],
+        ['Brave', join(home, '.config', 'BraveSoftware', 'Brave-Browser', 'NativeMessagingHosts')]
+      ];
+    } else if (os === 'win32') {
+      console.log('   ⚠️  Windows: You may need to manually remove registry entries');
+      console.log('   Registry path: HKEY_CURRENT_USER\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.lovelesslabs.vscodeopener\n');
+    }
+    
+    for (const [browserName, dir] of manifestDirs) {
+      const manifestPath = join(dir, manifestName);
+      if (existsSync(manifestPath)) {
+        try {
+          rmSync(manifestPath, { force: true });
+          console.log(`   ✓ Removed ${browserName} manifest`);
+          filesRemoved++;
+        } catch (err) {
+          errors.push(`Failed to remove ${browserName} manifest: ${err.message}`);
+          console.log(`   ✗ Failed to remove ${browserName} manifest`);
+        }
+      }
+    }
+    
+    if (filesRemoved === 0 && errors.length === 0) {
+      console.log('\n⚠️  No installation found. Nothing to uninstall.\n');
+      console.log('The native host may have already been uninstalled, or was never installed.\n');
+      return;
+    }
+    
+    console.log('\n✅ Uninstallation complete!\n');
+    
+    if (filesRemoved > 0) {
+      console.log(`   Removed ${filesRemoved} file(s)/directory(ies)\n`);
+    }
+    
+    if (errors.length > 0) {
+      console.log('⚠️  Some errors occurred:\n');
+      errors.forEach(err => console.log(`   • ${err}`));
+      console.log('');
+    }
+    
+    console.log('🔄 Please restart your browser for changes to take effect.\n');
+    
+  } catch (error) {
+    console.error('\n❌ Uninstallation failed:', error.message);
+    console.error('\nPlease report issues at: https://github.com/justinloveless/github-to-ide/issues\n');
+    process.exit(1);
+  }
+}
+
 // Main CLI logic
 async function main() {
   const args = process.argv.slice(2);
@@ -226,6 +317,12 @@ async function main() {
   // Handle version
   if (args.includes('--version') || args.includes('-v')) {
     showVersion();
+    process.exit(0);
+  }
+  
+  // Handle uninstall
+  if (args.includes('--uninstall')) {
+    await uninstall();
     process.exit(0);
   }
   

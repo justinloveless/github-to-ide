@@ -76,6 +76,12 @@ npx gh2ide --help
 npx gh2ide --version
 ```
 
+### Uninstall Command
+```bash
+npx gh2ide --uninstall
+```
+Removes all installed files and manifests from all browsers.
+
 ## Features
 
 ### 🎯 Interactive Mode
@@ -285,7 +291,7 @@ Possible improvements for future versions:
 
 1. **Auto-detect extension ID** - Read from browser profile
 2. **Update checker** - Notify when new version available
-3. **Uninstall command** - `npx gh2ide --uninstall`
+3. ~~**Uninstall command**~~ - ✅ **IMPLEMENTED** - `npx gh2ide --uninstall`
 4. **Config wizard** - Interactive setup for IDE preferences
 5. **Multiple extension support** - Install for multiple extensions
 6. **Logging** - Better troubleshooting with log files

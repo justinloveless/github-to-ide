@@ -51,6 +51,14 @@ npx gh2ide --help
 npx gh2ide --version
 ```
 
+### Uninstall
+
+```bash
+npx gh2ide --uninstall
+```
+
+This removes all installed files and manifests from all browsers.
+
 ## What it Does
 
 1. Installs the native messaging host to `~/.github-to-ide/native-host/`
@@ -100,22 +108,31 @@ npx gh2ide@latest --extension-id <your-id>
 
 ## Uninstalling
 
-To remove the native host:
+To completely remove the native host:
 
 ```bash
-rm -rf ~/.github-to-ide
+npx gh2ide --uninstall
 ```
 
-Then remove the manifest files:
+This automatically removes:
+- Installation directory (`~/.github-to-ide`)
+- All browser manifests (Chrome, Brave, Edge, Chromium)
+- Configuration files
+
+**Manual uninstall (if needed):**
+
+If the automatic uninstall doesn't work, you can manually remove files:
 
 **macOS:**
 ```bash
+rm -rf ~/.github-to-ide
 rm ~/Library/Application\ Support/Google/Chrome/NativeMessagingHosts/com.lovelesslabs.vscodeopener.json
 rm ~/Library/Application\ Support/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.lovelesslabs.vscodeopener.json
 ```
 
 **Linux:**
 ```bash
+rm -rf ~/.github-to-ide
 rm ~/.config/google-chrome/NativeMessagingHosts/com.lovelesslabs.vscodeopener.json
 rm ~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.lovelesslabs.vscodeopener.json
 ```
