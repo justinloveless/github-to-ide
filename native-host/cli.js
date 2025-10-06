@@ -263,6 +263,7 @@ async function install(extensionId) {
   const installDir = join(home, '.github-to-ide', 'native-host');
   const hostPath = join(installDir, 'index.js');
   const runScriptPath = join(installDir, 'run.sh');
+  const packageJsonPath = join(installDir, 'package.json');
   
   try {
     // Create directory
@@ -273,9 +274,11 @@ async function install(extensionId) {
     console.log('📦 Copying native host files...');
     const indexJsSource = join(__dirname, 'index.js');
     const runShSource = join(__dirname, 'run.sh');
+    const packageJsonSource = join(__dirname, 'package.json');
     
     cpSync(indexJsSource, hostPath);
     cpSync(runShSource, runScriptPath);
+    cpSync(packageJsonSource, packageJsonPath);
     chmodSync(runScriptPath, 0o755);
     
     // Create manifest
