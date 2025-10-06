@@ -8,57 +8,34 @@ import { createInterface } from 'node:readline';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const VERSION = '1.2.1';
+const VERSION = '1.2.2';
+const OFFICIAL_EXTENSION_ID = 'nnjlhioijmplllcdjlecbkihcfdcnldb';
 
 function showHelp() {
   console.log(`
 GitHub to IDE Native Host Installer v${VERSION}
 
+This installer sets up the native messaging host that allows the GitHub to IDE
+extension to communicate with your local IDEs.
+
 USAGE:
   npx gh2ide [OPTIONS]
 
 OPTIONS:
-  --extension-id <id>    Chrome extension ID (required for install)
-  --uninstall            Remove the native host
-  --help, -h             Show this help message
-  --version, -v          Show version number
+  --extension-id <id>    Override the official extension ID. For development only.
+  --uninstall            Remove the native host.
+  --help, -h             Show this help message.
+  --version, -v          Show the version number.
 
 EXAMPLES:
-  # Interactive mode (auto-detects extension, recommended)
+  # Install the native host (recommended)
   npx gh2ide
-
-  # Install with specific extension ID
-  npx gh2ide --extension-id abc123xyz
 
   # Uninstall the native host
   npx gh2ide --uninstall
 
-  # Show help
-  npx gh2ide --help
-
-AUTO-DETECTION:
-  Running without --extension-id will scan your browser profiles
-  and automatically detect the GitHub to IDE extension.
-
-FINDING YOUR EXTENSION ID MANUALLY:
-  1. Open Chrome and navigate to: chrome://extensions
-  2. Enable "Developer mode" (toggle in top-right)
-  3. Find "GitHub to IDE" extension
-  4. Copy the ID shown below the extension name
-     (Example: haekngngecedekgjbeoijeaapjkmblgp)
-
-WHAT THIS DOES:
-  - Installs the native messaging host to ~/.github-to-ide/native-host
-  - Creates a manifest file for Chrome to communicate with the extension
-  - Configures your system to allow the extension to open files in your IDE
-
-SUPPORTED PLATFORMS:
-  - macOS
-  - Linux
-  - Windows (limited support)
-
-MORE INFO:
-  https://github.com/justinloveless/github-to-ide
+  # Install for a development version of the extension
+  npx gh2ide --extension-id <your-development-id>
 `);
 }
 
@@ -481,16 +458,15 @@ async function main() {
     process.exit(0);
   }
   
-  // Get extension ID from args
+  // Get extension ID from args, or use the official one as a default
   const extensionIdIndex = args.indexOf('--extension-id');
-  let extensionId = extensionIdIndex !== -1 ? args[extensionIdIndex + 1] : null;
-  
-  // If no extension ID provided, enter interactive mode
-  if (!extensionId) {
-    extensionId = await promptForExtensionId();
-    
-    if (!extensionId) {
-      console.error('\n❌ Extension ID is required. Installation cancelled.\n');
+  let extensionId = OFFICIAL_EXTENSION_ID;
+
+  if (extensionIdIndex !== -1) {
+    if (args.length > extensionIdIndex + 1 && !args[extensionIdIndex + 1].startsWith('--')) {
+      extensionId = args[extensionIdIndex + 1];
+    } else {
+      console.error('\n❌ Error: --extension-id flag requires a value.\n');
       process.exit(1);
     }
   }
